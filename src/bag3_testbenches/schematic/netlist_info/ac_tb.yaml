@@ -1,0 +1,398 @@
+lib_name: bag3_testbenches
+cell_name: ac_tb
+view_name: schematic
+bbox:
+  - -202
+  - -260
+  - 394
+  - 170
+terminals:
+  {}
+shapes:
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: minus
+      points:
+        -
+          - 110
+          - 110
+        -
+          - 150
+          - 110
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: minus
+      origin:
+        - 114
+        - 117
+      alignment: 2
+      orient: R0
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: minus
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: plus
+      points:
+        -
+          - -110
+          - 110
+        -
+          - -70
+          - 110
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: plus
+      origin:
+        - -74
+        - 117
+      alignment: 8
+      orient: R0
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: plus
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: gnd!
+      points:
+        -
+          - -80
+          - -220
+        -
+          - -80
+          - -190
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: VSS
+      points:
+        -
+          - -80
+          - -130
+        -
+          - -80
+          - -100
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: plus
+      points:
+        -
+          - 140
+          - -130
+        -
+          - 140
+          - -90
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: plus
+      origin:
+        - 133
+        - -126
+      alignment: 2
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: plus
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: minus
+      points:
+        -
+          - 140
+          - -230
+        -
+          - 140
+          - -190
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: minus
+      origin:
+        - 133
+        - -194
+      alignment: 8
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: minus
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: PLUS
+      points:
+        -
+          - 300
+          - -130
+        -
+          - 300
+          - -90
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: MINUS
+      points:
+        -
+          - 300
+          - -230
+        -
+          - 300
+          - -190
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: PLUS
+      origin:
+        - 293
+        - -126
+      alignment: 2
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: PLUS
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: MINUS
+      origin:
+        - 293
+        - -194
+      alignment: 8
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: MINUS
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: VSS
+      origin:
+        - -87
+        - -110
+      alignment: 5
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: VSS
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: gnd!
+      origin:
+        - -87
+        - -200
+      alignment: 5
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: gnd!
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: VSS
+      points:
+        -
+          - 20
+          - 10
+        -
+          - 20
+          - 50
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: VSS
+      origin:
+        - 13
+        - 46
+      alignment: 8
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: VSS
+instances:
+  CLOAD:
+    lib_name: analogLib
+    cell_name: cap
+    view_name: symbol
+    xform:
+      - 300
+      - -130
+      - R0
+    bbox:
+      - 178
+      - -194
+      - 394
+      - -126
+    connections:
+      MINUS: MINUS
+      PLUS: PLUS
+    params:
+      {}
+    is_primitive: true
+  IAC:
+    lib_name: analogLib
+    cell_name: idc
+    view_name: symbol
+    xform:
+      - 140
+      - -130
+      - R0
+    bbox:
+      - 23
+      - -194
+      - 234
+      - -126
+    connections:
+      MINUS: minus
+      PLUS: plus
+    params:
+      acm:
+        - 3
+        - 1
+    is_primitive: true
+  VDC:
+    lib_name: analogLib
+    cell_name: vdc
+    view_name: symbol
+    xform:
+      - -80
+      - -130
+      - R0
+    bbox:
+      - -202
+      - -194
+      - 14
+      - -126
+    connections:
+      MINUS: gnd!
+      PLUS: VSS
+    params:
+      vdc:
+        - 3
+        - 0
+    is_primitive: true
+  X1:
+    lib_name: analogLib
+    cell_name: gnd
+    view_name: symbol
+    xform:
+      - -80
+      - -220
+      - R0
+    bbox:
+      - -90
+      - -260
+      - -6
+      - -216
+    connections:
+      gnd!: gnd!
+    params:
+      {}
+    is_primitive: true
+  XDUT:
+    lib_name: xbase
+    cell_name: momcap_char
+    view_name: symbol
+    xform:
+      - -70
+      - 50
+      - R0
+    bbox:
+      - -74
+      - 35
+      - 114
+      - 170
+    connections:
+      VSS: VSS
+      minus: minus
+      plus: plus
+    params:
+      {}
+    is_primitive: false
+props:
+  connectivityLastUpdated:
+    - 0
+    - 1428
+  instance#:
+    - 0
+    - 2
+  lastSchematicExtraction:
+    - 4
+    - time_val: 1616022582
+  net#:
+    - 0
+    - 0
+  pin#:
+    - 0
+    - 3
+  schGeometryLastUpdated:
+    - 0
+    - 1428
+  schGeometryVersion:
+    - 3
+    - sch.ds.gm.1.4
+  schXtrVersion:
+    - 3
+    - sch.10.0
+app_defs:
+  _dbLastSavedCounter:
+    - 0
+    - 1428
+  _dbvCvTimeStamp:
+    - 0
+    - 1428
+  cdbRevision:
+    - 0
+    - 227612
