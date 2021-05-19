@@ -1,33 +1,46 @@
-# SPDX-License-Identifier: Apache-2.0
-# Copyright 2019 Blue Cheetah Analog Design Inc.
+# BSD 3-Clause License
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Copyright (c) 2018, Regents of the University of California
+# All rights reserved.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from typing import Any, Sequence, Optional, Mapping, Type, List, Set, Union, Tuple, Iterable
 
-import abc
-
-from bag.design.module import Module
 from bag.simulation.core import TestbenchManager
 from bag.simulation.data import SimNetlistInfo, netlist_info_from_dict
+from bag.design.module import Module
 
 from bag3_liberty.data import parse_cdba_name, BusRange
 
 from ...schematic.digital_tb_tran import bag3_testbenches__digital_tb_tran
 
 
-class DCTB(TestbenchManager, abc.ABC):
-    """This class provide utility methods useful for all dc simulations.
+class ACTB(TestbenchManager):
+    """This class provide utility methods useful for all ac simulations.
 
     Notes
     -----
@@ -67,12 +80,9 @@ class DCTB(TestbenchManager, abc.ABC):
 
     save_outputs : Sequence[str]
         Optional.  list of nets to save in simulation data file.
-    dc_options : Mapping[str, Any]
-        Optional.  dc simulation options dictionary.
+    ac_options : Mapping[str, Any]
+        Optional.  ac simulation options dictionary.
     """
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
 
     @classmethod
     def get_schematic_class(cls) -> Type[Module]:
@@ -178,7 +188,6 @@ class DCTB(TestbenchManager, abc.ABC):
                                       conns=dict(PLUS=pin, MINUS=gnd_name)))
 
     def pre_setup(self, sch_params: Optional[Mapping[str, Any]]) -> Optional[Mapping[str, Any]]:
-        """Set up PWL waveform files."""
         if sch_params is None:
             return None
 
@@ -204,19 +213,17 @@ class DCTB(TestbenchManager, abc.ABC):
         )
 
     def get_netlist_info(self) -> SimNetlistInfo:
-        specs = self.specs
-        sweep_var: str = specs['sweep_var']
-        sweep_options: Mapping[str, Any] = specs['sweep_options']
-        dc_options: Mapping[str, Any] = specs.get('dc_options', {})
-        save_outputs: Sequence[str] = specs.get('save_outputs', [])
-
-        dc_dict = dict(type='DC',
+        sweep_var: str = self.specs.get('sweep_var', 'freq')
+        sweep_options: Mapping[str, Any] = self.specs['sweep_options']
+        ac_options: Mapping[str, Any] = self.specs.get('ac_options', {})
+        save_outputs: Sequence[str] = self.specs.get('save_outputs', ['plus', 'minus'])
+        ac_dict = dict(type='AC',
                        param=sweep_var,
                        sweep=sweep_options,
-                       options=dc_options,
+                       options=ac_options,
                        save_outputs=save_outputs,
                        )
 
         sim_setup = self.get_netlist_info_dict()
-        sim_setup['analyses'] = [dc_dict]
+        sim_setup['analyses'] = [ac_dict]
         return netlist_info_from_dict(sim_setup)
