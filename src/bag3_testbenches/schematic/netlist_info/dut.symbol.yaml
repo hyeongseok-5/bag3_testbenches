@@ -1,26 +1,11 @@
-# SPDX-License-Identifier: Apache-2.0
-# Copyright 2019 Blue Cheetah Analog Design Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 lib_name: bag3_testbenches
 cell_name: dut
 view_name: symbol
 bbox:
   - -4
   - -4
-  - 238
-  - 164
+  - 264
+  - 194
 terminals:
   VDD:
     obj:
@@ -29,11 +14,11 @@ terminals:
         purpose: 4294967295
         net: ""
         bbox:
-          - 76
-          - 156
-          - 84
-          - 164
-    stype: 0
+          - 126
+          - 186
+          - 134
+          - 194
+    stype: 1
     ttype: 2
   VSS:
     obj:
@@ -42,11 +27,11 @@ terminals:
         purpose: 4294967295
         net: ""
         bbox:
-          - 76
+          - 126
           - -4
-          - 84
+          - 134
           - 4
-    stype: 0
+    stype: 2
     ttype: 2
   in:
     obj:
@@ -68,9 +53,9 @@ terminals:
         purpose: 4294967295
         net: ""
         bbox:
-          - 156
+          - 256
           - 96
-          - 164
+          - 264
           - 104
     stype: 0
     ttype: 1
@@ -110,10 +95,10 @@ shapes:
       net: ""
       points:
         -
-          - 160
+          - 260
           - 100
         -
-          - 120
+          - 220
           - 100
   -
     - 7
@@ -121,7 +106,7 @@ shapes:
       purpose: 237
       net: ""
       origin:
-        - 154
+        - 254
         - 110
       alignment: 7
       orient: R0
@@ -138,19 +123,19 @@ shapes:
       net: ""
       points:
         -
-          - 80
-          - 160
+          - 130
+          - 190
         -
-          - 80
-          - 120
+          - 130
+          - 150
   -
     - 7
     - layer: 229
       purpose: 237
       net: ""
       origin:
-        - 70
-        - 154
+        - 120
+        - 184
       alignment: 1
       orient: R270
       font: 5
@@ -166,10 +151,10 @@ shapes:
       net: ""
       points:
         -
-          - 80
+          - 130
           - 0
         -
-          - 80
+          - 130
           - 40
   -
     - 7
@@ -177,7 +162,7 @@ shapes:
       purpose: 237
       net: ""
       origin:
-        - 70
+        - 120
         - 6
       alignment: 7
       orient: R270
@@ -195,16 +180,16 @@ shapes:
       bbox:
         - 0
         - 0
-        - 160
-        - 160
+        - 260
+        - 190
   -
     - 8
     - layer: 236
       purpose: 237
       net: ""
       origin:
-        - 110
         - 130
+        - 160
       alignment: 1
       orient: R0
       font: 5
@@ -220,8 +205,8 @@ shapes:
       purpose: 237
       net: ""
       origin:
-        - 85
-        - 95
+        - 90
+        - 135
       alignment: 4
       orient: R0
       font: 5
@@ -239,38 +224,20 @@ shapes:
       bbox:
         - 40
         - 40
-        - 120
-        - 120
-  -
-    - 5
-    - layer: 231
-      purpose: 4294967295
-      net: ""
-      points:
-        -
-          - 70
-          - 40
-        -
-          - 80
-          - 50
-        -
-          - 90
-          - 40
+        - 220
+        - 150
 instances:
   {}
 props:
-  instNamePrefix:
-    - 3
-    - X
   interfaceLastChanged:
     - 4
-    - time_val: 1568398001
+    - time_val: 1621490628
   partName:
     - 3
     - dut
   pin#:
     - 0
-    - 5
+    - 4
   portOrder:
     - 5
     - name: ILList
@@ -281,10 +248,10 @@ props:
 app_defs:
   _dbLastSavedCounter:
     - 0
-    - 207
+    - 93
   _dbvCvTimeStamp:
     - 0
-    - 207
+    - 93
   cdbRevision:
     - 0
     - 227612

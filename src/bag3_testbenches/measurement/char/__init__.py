@@ -40,13 +40,13 @@ from bag.simulation.cache import SimulationDB, DesignInstance, SimResults, Measu
 from bag.design.module import Module
 from bag.concurrent.util import GatherHelper
 
-from ...schematic.cap_tb_ac import bag3_testbenches__cap_tb_ac
+from ...schematic.char_tb_ac import bag3_testbenches__char_tb_ac
 
 
-class CapACTB(TestbenchManager):
+class CharACTB(TestbenchManager):
     @classmethod
     def get_schematic_class(cls) -> Type[Module]:
-        return bag3_testbenches__cap_tb_ac
+        return bag3_testbenches__char_tb_ac
 
     def get_netlist_info(self) -> SimNetlistInfo:
         sweep_var: str = self.specs.get('sweep_var', 'freq')
@@ -65,7 +65,7 @@ class CapACTB(TestbenchManager):
         return netlist_info_from_dict(sim_setup)
 
 
-class CapACMeas(MeasurementManager):
+class CharACMeas(MeasurementManager):
     def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo):
         raise NotImplementedError
 
@@ -82,12 +82,13 @@ class CapACMeas(MeasurementManager):
             helper.append(self.async_meas_case(name, sim_dir, sim_db, dut, idx))
 
         meas_results = await helper.gather_err()
-        ans = self.compute_passives(meas_results)
+        passive_type: str = self.specs['passive_type']
+        ans = self.compute_passives(meas_results, passive_type)
 
         return ans
 
     @staticmethod
-    def compute_passives(meas_results: Sequence[Mapping[str, Any]]) -> Mapping[str, Any]:
+    def compute_passives(meas_results: Sequence[Mapping[str, Any]], passive_type: str) -> Mapping[str, Any]:
         freq0 = meas_results[0]['freq']
         freq1 = meas_results[1]['freq']
         assert np.isclose(freq0, freq1).all()
@@ -123,11 +124,17 @@ class CapACMeas(MeasurementManager):
             plt.legend()
             plt.show()
 
-        return dict(
-            cc=estimate_cap(freq0, zc),
+        results = dict(
             cpp=estimate_cap(freq0, zpp),
             cpm=estimate_cap(freq0, zpm),
         )
+        if passive_type == 'cap':
+            results['cc'] = estimate_cap(freq0, zc)
+        elif passive_type == 'res':
+            results['res'] = np.mean(zc).real
+        else:
+            raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res".')
+        return results
 
     async def async_meas_case(self, name: str, sim_dir: Path, sim_db: SimulationDB, dut: Optional[DesignInstance],
                               case_idx: int) -> Dict[str, Any]:
@@ -142,11 +149,12 @@ class CapACMeas(MeasurementManager):
             **self.specs['tbm_specs']['ac_meas'],
             sim_envs=self.specs['sim_envs'],
         )
-        tbm = cast(CapACTB, self.make_tbm(CapACTB, tbm_specs))
+        tbm = cast(CharACTB, self.make_tbm(CharACTB, tbm_specs))
         tbm_name = f'{name}_{case_idx}'
         tb_params = dict(
             extracted=self.specs['tbm_specs'].get('extracted', True),
             sup_conns=sup_conns,
+            passive_type=self.specs['passive_type'],
         )
         sim_results = await sim_db.async_simulate_tbm_obj(tbm_name, sim_dir / tbm_name, dut, tbm,
                                                           tb_params=tb_params)

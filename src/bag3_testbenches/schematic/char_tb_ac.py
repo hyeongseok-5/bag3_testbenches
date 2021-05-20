@@ -30,7 +30,7 @@
 
 # -*- coding: utf-8 -*-
 
-from typing import Dict, Any, Mapping, Optional, Sequence, Tuple
+from typing import Dict, Any, Sequence, Tuple
 
 import pkg_resources
 from pathlib import Path
@@ -41,15 +41,15 @@ from bag.util.immutable import Param
 
 
 # noinspection PyPep8Naming
-class bag3_testbenches__cap_tb_ac(Module):
-    """Module for library bag3_testbenches cell cap_tb_ac.
+class bag3_testbenches__char_tb_ac(Module):
+    """Module for library bag3_testbenches cell char_tb_ac.
 
     Fill in high level description here.
     """
 
     yaml_file = pkg_resources.resource_filename(__name__,
                                                 str(Path('netlist_info',
-                                                         'cap_tb_ac.yaml')))
+                                                         'char_tb_ac.yaml')))
 
     def __init__(self, database: ModuleDB, params: Param, **kwargs: Any) -> None:
         Module.__init__(self, self.yaml_file, database, params, **kwargs)
@@ -68,6 +68,7 @@ class bag3_testbenches__cap_tb_ac(Module):
             sup_conns='Connections for AC supply',
             dut_lib='DUT library name',
             dut_cell='DUT cell name',
+            passive_type='"cap" or "res"',
         )
 
     @classmethod
@@ -75,7 +76,7 @@ class bag3_testbenches__cap_tb_ac(Module):
         return dict(extracted=True)
 
     def design(self, extracted: bool, sup_conns: Sequence[Tuple[str, str]],
-               dut_lib: str, dut_cell: str) -> None:
+               dut_lib: str, dut_cell: str, passive_type: str) -> None:
         """To be overridden by subclasses to design this module.
 
         This method should fill in values for all parameters in
@@ -95,8 +96,18 @@ class bag3_testbenches__cap_tb_ac(Module):
             self.remove_instance('Cc')
             self.remove_instance('Cpp')
             self.remove_instance('Cpm')
-            self.replace_instance_master('XCAP', dut_lib, dut_cell, keep_connections=True, static=True)
+            self.replace_instance_master('XDUT', dut_lib, dut_cell, keep_connections=True, static=True)
+            self.reconnect_instance('XDUT', [('plus', 'plus'), ('minus', 'minus')])
         else:
-            self.remove_instance('XCAP')
+            if passive_type == 'cap':
+                self.remove_instance('XDUT')
+            elif passive_type == 'res':
+                self.remove_instance('Cc')
+                self.remove_instance('Cpp')
+                self.remove_instance('Cpm')
+                self.replace_instance_master('XDUT', dut_lib, dut_cell, keep_connections=True, static=True)
+                self.reconnect_instance('XDUT', [('plus', 'plus'), ('minus', 'minus')])
+            else:
+                raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res".')
 
         self.reconnect_instance('IAC', sup_conns)

@@ -1,12 +1,51 @@
 lib_name: bag3_testbenches
-cell_name: cap_tb_ac
+cell_name: char_tb_ac
 view_name: schematic
 bbox:
   - -360
   - -260
   - 514
-  - 114
+  - 420
 terminals:
+  VDD:
+    obj:
+      - 1
+      - inst:
+          lib_name: basic
+          cell_name: iopin
+          view_name: symbolr
+          xform:
+            - -290
+            - 130
+            - R0
+          bbox:
+            - -351
+            - 104
+            - -280
+            - 140
+          connections:
+            {}
+          params:
+            {}
+          is_primitive: true
+        attr:
+          layer: 229
+          purpose: 237
+          net: ""
+          origin:
+            - -315
+            - 130
+          alignment: 7
+          orient: R0
+          font: 5
+          height: 10
+          overbar: false
+          visible: true
+          drafting: true
+          attr_type: 0
+          format: 1
+    stype: 1
+    ttype: 2
   VSS:
     obj:
       - 1
@@ -129,22 +168,50 @@ shapes:
     - 5
     - layer: 228
       purpose: 4294967295
+      net: VDD
+      points:
+        -
+          - -20
+          - 380
+        -
+          - -20
+          - 420
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: VDD
+      origin:
+        - -27
+        - 384
+      alignment: 2
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: VDD
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
       net: minus
       points:
         -
-          - 80
-          - 0
+          - 110
+          - 290
         -
-          - 120
-          - 0
+          - 150
+          - 290
   -
     - 7
     - layer: 228
       purpose: 237
       net: minus
       origin:
-        - 84
-        - 7
+        - 114
+        - 297
       alignment: 2
       orient: R0
       font: 5
@@ -153,34 +220,6 @@ shapes:
       visible: true
       drafting: true
       text: minus
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: plus
-      points:
-        -
-          - -140
-          - 0
-        -
-          - -100
-          - 0
-  -
-    - 7
-    - layer: 228
-      purpose: 237
-      net: plus
-      origin:
-        - -104
-        - 7
-      alignment: 8
-      orient: R0
-      font: 5
-      height: 10
-      overbar: false
-      visible: true
-      drafting: true
-      text: plus
   -
     - 5
     - layer: 228
@@ -433,22 +472,50 @@ shapes:
     - 5
     - layer: 228
       purpose: 4294967295
+      net: plus
+      points:
+        -
+          - -190
+          - 290
+        -
+          - -150
+          - 290
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: plus
+      origin:
+        - -154
+        - 297
+      alignment: 8
+      orient: R0
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: plus
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
       net: VSS
       points:
         -
-          - -10
-          - -100
+          - -20
+          - 150
         -
-          - -10
-          - -60
+          - -20
+          - 190
   -
     - 7
     - layer: 228
       purpose: 237
       net: VSS
       origin:
-        - -17
-        - -64
+        - -27
+        - 186
       alignment: 8
       orient: R90
       font: 5
@@ -457,6 +524,62 @@ shapes:
       visible: true
       drafting: true
       text: VSS
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: VDD
+      points:
+        -
+          - -210
+          - -130
+        -
+          - -210
+          - -100
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: VDD
+      origin:
+        - -217
+        - -110
+      alignment: 5
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: VDD
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: gnd!
+      points:
+        -
+          - -210
+          - -220
+        -
+          - -210
+          - -190
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: gnd!
+      origin:
+        - -217
+        - -200
+      alignment: 5
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: gnd!
 instances:
   Cc:
     lib_name: analogLib
@@ -542,7 +665,28 @@ instances:
         - 3
         - 1
     is_primitive: true
-  VDC:
+  VVDD:
+    lib_name: analogLib
+    cell_name: vdc
+    view_name: symbol
+    xform:
+      - -210
+      - -130
+      - R0
+    bbox:
+      - -332
+      - -194
+      - -116
+      - -126
+    connections:
+      MINUS: gnd!
+      PLUS: VDD
+    params:
+      vdc:
+        - 3
+        - vdd
+    is_primitive: true
+  VVSS:
     lib_name: analogLib
     cell_name: vdc
     view_name: symbol
@@ -581,45 +725,64 @@ instances:
     params:
       {}
     is_primitive: true
-  XCAP:
-    lib_name: xbase
-    cell_name: momcap_char
+  X2:
+    lib_name: analogLib
+    cell_name: gnd
     view_name: symbol
     xform:
-      - -100
-      - -60
+      - -210
+      - -220
       - R0
     bbox:
-      - -104
-      - -75
-      - 84
-      - 60
+      - -220
+      - -260
+      - -136
+      - -216
     connections:
+      gnd!: gnd!
+    params:
+      {}
+    is_primitive: true
+  XDUT:
+    lib_name: bag3_testbenches
+    cell_name: dut
+    view_name: symbol
+    xform:
+      - -150
+      - 190
+      - R0
+    bbox:
+      - -154
+      - 186
+      - 114
+      - 384
+    connections:
+      VDD: VDD
       VSS: VSS
-      minus: minus
-      plus: plus
+      in: plus
+      out: minus
     params:
       {}
     is_primitive: false
 props:
   connectivityLastUpdated:
     - 0
-    - 1136
+    - 1982
   instance#:
     - 0
-    - 2
+    - 3
   lastSchematicExtraction:
     - 4
-    - time_val: 1612160103
+    - time_val: 1621493387
   net#:
     - 0
-    - 2
+    - 3
   pin#:
     - 0
-    - 3
+    - 4
   schGeometryLastUpdated:
     - 0
-    - 1136
+    - 1982
   schGeometryVersion:
     - 3
     - sch.ds.gm.1.4
@@ -629,10 +792,10 @@ props:
 app_defs:
   _dbLastSavedCounter:
     - 0
-    - 1136
+    - 1982
   _dbvCvTimeStamp:
     - 0
-    - 1136
+    - 1982
   cdbRevision:
     - 0
     - 227612
