@@ -71,9 +71,11 @@ class DigitalTranTB(TranTB):
         Optional.  List of loads.  Each dictionary has the following entries:
 
         pin: str
-            the pin to connect to.
+            Optional, the pin to connect to.
         nin: str
-            Optional, the negative pin to connect to
+            Optional, the negative pin to connect to.
+        conns: Mapping[str, str]
+            Optional, the connection dictionary. Either specify pin (and nin), or specify conns.
         type : str
             the load device type.
         value : Union[float, str]
@@ -269,11 +271,21 @@ class DigitalTranTB(TranTB):
         pwr_domain: Mapping[str, Tuple[str, str]] = self.specs['pwr_domain']
 
         for params in load_list:
-            pin: str = params['pin']
+            if 'pin' in params:
+                pin: str = params['pin']
+                pos_pins, neg_pins = self.get_diff_groups(pin)
+                conns = {}
+            elif 'conns' in params:
+                conns: Mapping[str, str] = params['conns']
+                pin = ''
+                pos_pins, neg_pins = [], []
+            else:
+                raise ValueError('Specify either "pin" or "conns".')
             value: Union[float, str] = params['value']
             dev_type: str = params['type']
-            pos_pins, neg_pins = self.get_diff_groups(pin)
             if 'nin' in params:
+                if not pin:
+                    raise ValueError('If "nin" is specified, also specify "pin". Otherwise just use "conns".')
                 nin: str = params['nin']
                 npos_pins, nneg_pins = self.get_diff_groups(nin)
 
@@ -282,11 +294,14 @@ class DigitalTranTB(TranTB):
                     src_load_list.append(dict(type=dev_type, lib='analogLib', value=value,
                                               conns=dict(PLUS=pin_name, MINUS=nin_name)))
             else:
-                gnd_name = self.get_pin_supplies(pin, pwr_domain)[0]
-
-                for pin_name in chain(pos_pins, neg_pins):
+                if pin:
+                    gnd_name = self.get_pin_supplies(pin, pwr_domain)[0]
+                    for pin_name in chain(pos_pins, neg_pins):
+                        src_load_list.append(dict(type=dev_type, lib='analogLib', value=value,
+                                                  conns=dict(PLUS=pin_name, MINUS=gnd_name)))
+                else:
                     src_load_list.append(dict(type=dev_type, lib='analogLib', value=value,
-                                              conns=dict(PLUS=pin_name, MINUS=gnd_name)))
+                                              conns=conns))
 
     def get_reset_sources(self, reset_list: Iterable[Tuple[str, bool]],
                           src_list: List[Mapping[str, Any]], src_pins: Set[str],
