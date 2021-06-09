@@ -35,8 +35,8 @@ from bag.simulation.data import SimNetlistInfo, netlist_info_from_dict
 from ..base import GenericTB
 
 
-class DCTB(GenericTB):
-    """This class provide utility methods useful for all dc simulations.
+class ACTB(GenericTB):
+    """This class provide utility methods useful for all ac simulations.
 
     Notes
     -----
@@ -57,24 +57,22 @@ class DCTB(GenericTB):
 
     subclasses can define the following optional entries:
 
-    dc_options : Mapping[str, Any]
-        Optional.  dc simulation options dictionary.
+    ac_options : Mapping[str, Any]
+        Optional.  ac simulation options dictionary.
     """
 
     def get_netlist_info(self) -> SimNetlistInfo:
-        specs = self.specs
-        sweep_var: str = specs['sweep_var']
-        sweep_options: Mapping[str, Any] = specs['sweep_options']
-        dc_options: Mapping[str, Any] = specs.get('dc_options', {})
-        save_outputs: Sequence[str] = specs.get('save_outputs', [])
-
-        dc_dict = dict(type='DC',
+        sweep_var: str = self.specs.get('sweep_var', 'freq')
+        sweep_options: Mapping[str, Any] = self.specs['sweep_options']
+        ac_options: Mapping[str, Any] = self.specs.get('ac_options', {})
+        save_outputs: Sequence[str] = self.specs.get('save_outputs', ['plus', 'minus'])
+        ac_dict = dict(type='AC',
                        param=sweep_var,
                        sweep=sweep_options,
-                       options=dc_options,
+                       options=ac_options,
                        save_outputs=save_outputs,
                        )
 
         sim_setup = self.get_netlist_info_dict()
-        sim_setup['analyses'] = [dc_dict]
+        sim_setup['analyses'] = [ac_dict]
         return netlist_info_from_dict(sim_setup)

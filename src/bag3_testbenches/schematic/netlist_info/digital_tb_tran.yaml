@@ -1,26 +1,11 @@
-# SPDX-License-Identifier: Apache-2.0
-# Copyright 2019 Blue Cheetah Analog Design Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 lib_name: bag3_testbenches
 cell_name: digital_tb_tran
 view_name: schematic
 bbox:
-  - -60
-  - -600
-  - 554
-  - 520
+  - -340
+  - -830
+  - 14
+  - 270
 terminals:
   {}
 shapes:
@@ -28,130 +13,50 @@ shapes:
     - 5
     - layer: 228
       purpose: 4294967295
-      net: in
-      points:
-        -
-          - -60
-          - 420
-        -
-          - -20
-          - 420
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: out
-      points:
-        -
-          - 140
-          - 420
-        -
-          - 180
-          - 420
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
       net: VSS
       points:
         -
-          - 60
-          - 280
-        -
-          - 60
-          - 320
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: VDD
-      points:
-        -
-          - 60
-          - 480
-        -
-          - 60
-          - 520
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: gnd!
-      points:
-        -
-          - 360
-          - 20
-        -
-          - 360
-          - 60
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: VSS
-      points:
-        -
-          - 460
-          - 20
-        -
-          - 460
-          - 60
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: VDD
-      points:
-        -
-          - 460
-          - 120
-        -
-          - 460
-          - 160
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: noConn
-      points:
-        -
-          - 460
-          - -550
-        -
-          - 460
-          - -510
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: VSS
-      points:
-        -
-          - 460
-          - -140
-        -
-          - 460
-          - -100
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: clk
-      points:
-        -
-          - 460
-          - -40
-        -
-          - 460
+          - -170
           - 0
+        -
+          - -170
+          - 40
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: VSS
+      origin:
+        - -177
+        - 36
+      alignment: 8
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: VSS
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: VDD
+      points:
+        -
+          - -170
+          - 230
+        -
+          - -170
+          - 270
   -
     - 7
     - layer: 228
       purpose: 237
       net: VDD
       origin:
-        - 53
-        - 484
+        - -177
+        - 234
       alignment: 2
       orient: R90
       font: 5
@@ -161,13 +66,25 @@ shapes:
       drafting: true
       text: VDD
   -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: out
+      points:
+        -
+          - -40
+          - 140
+        -
+          - 0
+          - 140
+  -
     - 7
     - layer: 228
       purpose: 237
       net: out
       origin:
-        - 144
-        - 427
+        - -36
+        - 147
       alignment: 2
       orient: R0
       font: 5
@@ -177,29 +94,25 @@ shapes:
       drafting: true
       text: out
   -
-    - 7
+    - 5
     - layer: 228
-      purpose: 237
-      net: VSS
-      origin:
-        - 53
-        - 316
-      alignment: 8
-      orient: R90
-      font: 5
-      height: 10
-      overbar: false
-      visible: true
-      drafting: true
-      text: VSS
+      purpose: 4294967295
+      net: in
+      points:
+        -
+          - -340
+          - 140
+        -
+          - -300
+          - 140
   -
     - 7
     - layer: 228
       purpose: 237
       net: in
       origin:
-        - -24
-        - 427
+        - -304
+        - 147
       alignment: 8
       orient: R0
       font: 5
@@ -209,13 +122,25 @@ shapes:
       drafting: true
       text: in
   -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: VSS
+      points:
+        -
+          - -170
+          - -200
+        -
+          - -170
+          - -160
+  -
     - 7
     - layer: 228
       purpose: 237
       net: VSS
       origin:
-        - 453
-        - 56
+        - -177
+        - -164
       alignment: 8
       orient: R90
       font: 5
@@ -225,13 +150,25 @@ shapes:
       drafting: true
       text: VSS
   -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: out
+      points:
+        -
+          - -170
+          - -100
+        -
+          - -170
+          - -60
+  -
     - 7
     - layer: 228
       purpose: 237
-      net: VDD
+      net: out
       origin:
-        - 453
-        - 124
+        - -177
+        - -96
       alignment: 2
       orient: R90
       font: 5
@@ -239,7 +176,7 @@ shapes:
       overbar: false
       visible: true
       drafting: true
-      text: VDD
+      text: out
   -
     - 5
     - layer: 228
@@ -247,19 +184,19 @@ shapes:
       net: VSS
       points:
         -
-          - 60
-          - 320
+          - -170
+          - -300
         -
-          - 60
-          - 340
+          - -170
+          - -260
   -
     - 7
     - layer: 228
       purpose: 237
-      net: noConn
+      net: VSS
       origin:
-        - 453
-        - -546
+        - -177
+        - -296
       alignment: 2
       orient: R90
       font: 5
@@ -267,15 +204,83 @@ shapes:
       overbar: false
       visible: true
       drafting: true
-      text: noConn
+      text: VSS
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: gnd!
+      points:
+        -
+          - -170
+          - -400
+        -
+          - -170
+          - -360
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: gnd!
+      origin:
+        - -177
+        - -364
+      alignment: 8
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: gnd!
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: gnd!
+      points:
+        -
+          - -170
+          - -460
+        -
+          - -170
+          - -420
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: gnd!
+      origin:
+        - -177
+        - -456
+      alignment: 2
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: gnd!
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: clk
+      points:
+        -
+          - -170
+          - -580
+        -
+          - -170
+          - -540
   -
     - 7
     - layer: 228
       purpose: 237
       net: clk
       origin:
-        - 453
-        - -36
+        - -177
+        - -576
       alignment: 2
       orient: R90
       font: 5
@@ -285,69 +290,25 @@ shapes:
       drafting: true
       text: clk
   -
-    - 7
-    - layer: 228
-      purpose: 237
-      net: VSS
-      origin:
-        - 453
-        - -104
-      alignment: 8
-      orient: R90
-      font: 5
-      height: 10
-      overbar: false
-      visible: true
-      drafting: true
-      text: VSS
-  -
     - 5
     - layer: 228
       purpose: 4294967295
       net: VSS
       points:
         -
-          - 360
-          - 120
+          - -170
+          - -680
         -
-          - 360
-          - 160
+          - -170
+          - -640
   -
     - 7
     - layer: 228
       purpose: 237
       net: VSS
       origin:
-        - 353
-        - 124
-      alignment: 2
-      orient: R90
-      font: 5
-      height: 10
-      overbar: false
-      visible: true
-      drafting: true
-      text: VSS
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: VSS
-      points:
-        -
-          - 460
-          - -300
-        -
-          - 460
-          - -260
-  -
-    - 7
-    - layer: 228
-      purpose: 237
-      net: VSS
-      origin:
-        - 453
-        - -264
+        - -177
+        - -644
       alignment: 8
       orient: R90
       font: 5
@@ -363,19 +324,19 @@ shapes:
       net: in
       points:
         -
-          - 460
-          - -200
+          - -80
+          - -580
         -
-          - 460
-          - -160
+          - -80
+          - -540
   -
     - 7
     - layer: 228
       purpose: 237
       net: in
       origin:
-        - 453
-        - -196
+        - -87
+        - -576
       alignment: 2
       orient: R90
       font: 5
@@ -391,19 +352,19 @@ shapes:
       net: VSS
       points:
         -
-          - 460
-          - -460
+          - -80
+          - -680
         -
-          - 460
-          - -420
+          - -80
+          - -640
   -
     - 7
     - layer: 228
       purpose: 237
       net: VSS
       origin:
-        - 453
-        - -424
+        - -87
+        - -644
       alignment: 8
       orient: R90
       font: 5
@@ -416,22 +377,22 @@ shapes:
     - 5
     - layer: 228
       purpose: 4294967295
-      net: out
+      net: VDD
       points:
         -
-          - 460
-          - -360
+          - -80
+          - -300
         -
-          - 460
-          - -320
+          - -80
+          - -260
   -
     - 7
     - layer: 228
       purpose: 237
-      net: out
+      net: VDD
       origin:
-        - 453
-        - -356
+        - -87
+        - -296
       alignment: 2
       orient: R90
       font: 5
@@ -439,21 +400,77 @@ shapes:
       overbar: false
       visible: true
       drafting: true
-      text: out
+      text: VDD
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: VSS
+      points:
+        -
+          - -80
+          - -400
+        -
+          - -80
+          - -360
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: VSS
+      origin:
+        - -87
+        - -364
+      alignment: 8
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: VSS
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: noConn
+      points:
+        -
+          - -170
+          - -780
+        -
+          - -170
+          - -740
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: noConn
+      origin:
+        - -177
+        - -776
+      alignment: 2
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: noConn
 instances:
   CLOAD:
     lib_name: analogLib
     cell_name: cap
     view_name: symbol
     xform:
-      - 460
-      - -360
+      - -170
+      - -100
       - R0
     bbox:
-      - 338
-      - -424
-      - 554
-      - -356
+      - -292
+      - -164
+      - -76
+      - -96
     connections:
       MINUS: VSS
       PLUS: out
@@ -467,14 +484,14 @@ instances:
     cell_name: gnd
     view_name: symbol
     xform:
-      - 360
-      - 20
+      - -170
+      - -460
       - R0
     bbox:
-      - 350
-      - -20
-      - 434
-      - 24
+      - -180
+      - -500
+      - -96
+      - -456
     connections:
       gnd!: gnd!
     params:
@@ -485,52 +502,56 @@ instances:
     cell_name: vpwlf
     view_name: symbol
     xform:
-      - 460
-      - -40
+      - -170
+      - -580
       - R0
     bbox:
-      - 343
-      - -104
-      - 554
-      - -36
+      - -287
+      - -644
+      - -76
+      - -576
     connections:
       MINUS: VSS
       PLUS: clk
     params:
-      {}
+      fileName:
+        - 3
+        - ""
     is_primitive: true
   VIN:
     lib_name: analogLib
     cell_name: vpwlf
     view_name: symbol
     xform:
-      - 460
-      - -200
+      - -80
+      - -580
       - R0
     bbox:
-      - 343
-      - -264
-      - 554
-      - -196
+      - -197
+      - -644
+      - 14
+      - -576
     connections:
       MINUS: VSS
       PLUS: in
     params:
-      {}
+      fileName:
+        - 3
+        - ""
     is_primitive: true
   VSUP:
     lib_name: analogLib
     cell_name: vdc
     view_name: symbol
     xform:
-      - 460
-      - 120
+      - -80
+      - -300
       - R0
     bbox:
-      - 338
-      - 56
-      - 554
-      - 124
+      - -202
+      - -364
+      - 14
+      - -296
     connections:
       MINUS: VSS
       PLUS: VDD
@@ -544,14 +565,14 @@ instances:
     cell_name: vdc
     view_name: symbol
     xform:
-      - 360
-      - 120
+      - -170
+      - -300
       - R0
     bbox:
-      - 238
-      - 56
-      - 454
-      - 124
+      - -292
+      - -364
+      - -76
+      - -296
     connections:
       MINUS: gnd!
       PLUS: VSS
@@ -565,14 +586,14 @@ instances:
     cell_name: dut
     view_name: symbol
     xform:
-      - -20
-      - 320
+      - -300
+      - 40
       - R0
     bbox:
-      - -24
-      - 316
-      - 218
-      - 484
+      - -304
+      - 36
+      - -36
+      - 234
     connections:
       VDD: VDD
       VSS: VSS
@@ -586,14 +607,14 @@ instances:
     cell_name: noConn
     view_name: symbol
     xform:
-      - 460
-      - -550
+      - -170
+      - -780
       - R0
     bbox:
-      - 450
-      - -600
-      - 470
-      - -546
+      - -180
+      - -830
+      - -160
+      - -776
     connections:
       noConn: noConn
     params:
@@ -602,22 +623,13 @@ instances:
 props:
   connectivityLastUpdated:
     - 0
-    - 7776
-  instance#:
-    - 0
-    - 1
-  instancesLastChanged:
-    - 4
-    - time_val: 1570494116
+    - 498
   lastSchematicExtraction:
     - 4
-    - time_val: 1570494787
-  net#:
-    - 0
-    - 2
+    - time_val: 1623264410
   schGeometryLastUpdated:
     - 0
-    - 7776
+    - 498
   schGeometryVersion:
     - 3
     - sch.ds.gm.1.4
@@ -627,10 +639,10 @@ props:
 app_defs:
   _dbLastSavedCounter:
     - 0
-    - 7776
+    - 498
   _dbvCvTimeStamp:
     - 0
-    - 7776
+    - 498
   cdbRevision:
     - 0
     - 227612

@@ -13,18 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Sequence, Optional, Mapping, Type, List, Set, Union
+from typing import Any, Optional, Mapping
 
-import abc
-
-from bag.design.module import Module
-from bag.simulation.core import TestbenchManager
 from bag.simulation.data import SimNetlistInfo, netlist_info_from_dict
 
-from ...schematic.digital_tb_tran import bag3_testbenches__digital_tb_tran
+from ..base import GenericTB
 
 
-class TranTB(TestbenchManager, abc.ABC):
+class TranTB(GenericTB):
     """This class provide utility methods useful for all transient simulations.
 
     Notes
@@ -41,51 +37,9 @@ class TranTB(TestbenchManager, abc.ABC):
 
     t_step : Optional[float]
         Optional.  The strobe period.  Defaults to no strobing.
-    save_outputs : Sequence[str]
-        Optional.  list of nets to save in simulation data file.
     tran_options : Mapping[str, Any]
         Optional.  transient simulation options dictionary.
     """
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
-    @property
-    def save_outputs(self) -> Sequence[str]:
-        return self.specs.get('save_outputs', [])
-
-    @classmethod
-    def get_schematic_class(cls) -> Type[Module]:
-        return bag3_testbenches__digital_tb_tran
-
-    @classmethod
-    def sup_var_name(cls, sup_pin: str) -> str:
-        return f'v_{sup_pin}'
-
-    def get_bias_sources(self, sup_values: Mapping[str, Union[float, Mapping[str, float]]],
-                         src_list: List[Mapping[str, Any]], src_pins: Set[str]) -> None:
-        """Save bias sources and pins into src_list and src_pins.
-
-        Side effect: will add voltage variables in self.sim_params.
-        """
-        sim_params = self.sim_params
-        env_params = self.env_params
-        for sup_pin, sup_val in sup_values.items():
-            if sup_pin in src_pins:
-                raise ValueError(f'Cannot add bias source on pin {sup_pin}, already used.')
-
-            var_name = self.sup_var_name(sup_pin)
-            if sup_pin == 'VSS':
-                if sup_val != 0:
-                    raise ValueError('VSS must be 0 volts.')
-            else:
-                src_list.append(dict(type='vdc', lib='analogLib', value=var_name,
-                                     conns=dict(PLUS=sup_pin, MINUS='VSS')))
-                src_pins.add(sup_pin)
-            if isinstance(sup_val, float) or isinstance(sup_val, int):
-                sim_params[var_name] = float(sup_val)
-            else:
-                env_params[var_name] = dict(**sup_val)
 
     def get_netlist_info(self) -> SimNetlistInfo:
         specs = self.specs
