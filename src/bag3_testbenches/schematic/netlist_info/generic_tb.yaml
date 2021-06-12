@@ -1,5 +1,5 @@
 lib_name: bag3_testbenches
-cell_name: digital_tb_tran
+cell_name: generic_tb
 view_name: schematic
 bbox:
   - -340

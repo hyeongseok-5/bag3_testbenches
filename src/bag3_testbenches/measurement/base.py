@@ -42,7 +42,7 @@ from pybag.core import get_cdba_name_bits
 
 from bag3_liberty.data import parse_cdba_name
 
-from ..schematic.digital_tb_tran import bag3_testbenches__digital_tb_tran
+from ..schematic.generic_tb import bag3_testbenches__generic_tb
 
 
 class GenericTB(TestbenchManager, abc.ABC):
@@ -75,6 +75,13 @@ class GenericTB(TestbenchManager, abc.ABC):
             the load device type.
         value : Union[float, str]
             the load parameter value.
+    harnesses_list : Optional[Sequence[Mapping[str, Any]]]
+        list of harnesses used in the TB with harness_idx and conns.
+
+        - harness_idx: int
+            the index of the harness cell_name from harnesses_cell
+          conns: Sequence[Tuple[str, str]]
+            harness connections
     pwr_domain : Mapping[str, Tuple[str, str]]
         Dictionary from individual pin names or base names to (ground, power) pin name tuple.
     sup_values : Mapping[str, Union[float, Mapping[str, float]]]
@@ -120,7 +127,7 @@ class GenericTB(TestbenchManager, abc.ABC):
 
     @classmethod
     def get_schematic_class(cls) -> Type[Module]:
-        return bag3_testbenches__digital_tb_tran
+        return bag3_testbenches__generic_tb
 
     @classmethod
     def sup_var_name(cls, sup_pin: str) -> str:
@@ -209,6 +216,8 @@ class GenericTB(TestbenchManager, abc.ABC):
             dut_cell=sch_params.get('dut_cell', ''),
             dut_params=sch_params.get('dut_params', None),
             dut_conns=sch_params.get('dut_conns', dut_conns),
+            harnesses_cell=sch_params.get('harnesses_cell', None),
+            harnesses_list=specs.get('harnesses_list', None),
             vbias_list=[],
             src_list=src_list,
         )

@@ -28,7 +28,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Type, Union, Dict, Optional, Any, cast, Sequence, Mapping
+from typing import Type, Union, Optional, Any, cast, Sequence, Mapping
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
@@ -83,61 +83,11 @@ class CharACMeas(MeasurementManager):
 
         meas_results = await helper.gather_err()
         passive_type: str = self.specs['passive_type']
-        ans = self.compute_passives(meas_results, passive_type)
-
+        ans = compute_passives(meas_results, passive_type)
         return ans
 
-    @staticmethod
-    def compute_passives(meas_results: Sequence[Mapping[str, Any]], passive_type: str) -> Mapping[str, Any]:
-        freq0 = meas_results[0]['freq']
-        freq1 = meas_results[1]['freq']
-        assert np.isclose(freq0, freq1).all()
-
-        # vm0 = (zc * zpm) / (zc + zpp + zpm)
-        # vp0 = - (zc * zpp) / (zc + zpp + zpm)
-        vm0 = meas_results[0]['minus']
-        vp0 = meas_results[0]['plus']
-
-        # vm1 = - (zpp * zpm) / (zc + zpp + zpm)
-        # vp1 = - ((zc + zpm) * zpp) / (zc + zpp + zpm)
-        vm1 = meas_results[1]['minus']
-        vp1 = meas_results[1]['plus']
-
-        # --- Find zc, zpp, zpm using vm0, vp0, vm1 --- #
-        # - vp0 / vm0 = zpp / zpm = const_a  ==> zpp = const_a * zpm
-        const_a = - vp0 / vm0
-        # vp0 / vm1 = zc / zpm = const_b  ==> zc = const_b * zpm
-        const_b = vp0 / vm1
-
-        # vp0 = - (const_b * const_a * zpm) / (const_b + const_a + 1)
-        zpm = - vp0 * (const_b + const_a + 1) / (const_b * const_a)
-        zpp = const_a * zpm
-        zc = const_b * zpm
-
-        # --- Verify vp1 is consistent --- #
-        vp1_calc = - ((zc + zpm) * zpp) / (zc + zpp + zpm)
-        if not np.isclose(vp1, vp1_calc, rtol=1e-3).all():
-            plt.loglog(freq0, np.abs(vp1), label='measured')
-            plt.loglog(freq0, np.abs(vp1_calc), 'g--', label='calculated')
-            plt.xlabel('Frequency (in Hz)')
-            plt.ylabel('Value')
-            plt.legend()
-            plt.show()
-
-        results = dict(
-            cpp=estimate_cap(freq0, zpp),
-            cpm=estimate_cap(freq0, zpm),
-        )
-        if passive_type == 'cap':
-            results['cc'] = estimate_cap(freq0, zc)
-        elif passive_type == 'res':
-            results['res'] = np.mean(zc).real
-        else:
-            raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res".')
-        return results
-
     async def async_meas_case(self, name: str, sim_dir: Path, sim_db: SimulationDB, dut: Optional[DesignInstance],
-                              case_idx: int) -> Dict[str, Any]:
+                              case_idx: int) -> Mapping[str, Any]:
         if case_idx == 0:
             sup_conns = [('PLUS', 'plus'), ('MINUS', 'minus')]
         elif case_idx == 1:
@@ -165,3 +115,52 @@ class CharACMeas(MeasurementManager):
 def estimate_cap(freq: np.ndarray, zc: np.ndarray) -> float:
     fit = np.polyfit(2 * np.pi * freq, - 1 / np.imag(zc), 1)
     return fit[0]
+
+
+def compute_passives(meas_results: Sequence[Mapping[str, Any]], passive_type: str) -> Mapping[str, Any]:
+    freq0 = meas_results[0]['freq']
+    freq1 = meas_results[1]['freq']
+    assert np.isclose(freq0, freq1).all()
+
+    # vm0 = (zc * zpm) / (zc + zpp + zpm)
+    # vp0 = - (zc * zpp) / (zc + zpp + zpm)
+    vm0 = meas_results[0]['minus']
+    vp0 = meas_results[0]['plus']
+
+    # vm1 = - (zpp * zpm) / (zc + zpp + zpm)
+    # vp1 = - ((zc + zpm) * zpp) / (zc + zpp + zpm)
+    vm1 = meas_results[1]['minus']
+    vp1 = meas_results[1]['plus']
+
+    # --- Find zc, zpp, zpm using vm0, vp0, vm1 --- #
+    # - vp0 / vm0 = zpp / zpm = const_a  ==> zpp = const_a * zpm
+    const_a = - vp0 / vm0
+    # vp0 / vm1 = zc / zpm = const_b  ==> zc = const_b * zpm
+    const_b = vp0 / vm1
+
+    # vp0 = - (const_b * const_a * zpm) / (const_b + const_a + 1)
+    zpm = - vp0 * (const_b + const_a + 1) / (const_b * const_a)
+    zpp = const_a * zpm
+    zc = const_b * zpm
+
+    # --- Verify vp1 is consistent --- #
+    vp1_calc = - ((zc + zpm) * zpp) / (zc + zpp + zpm)
+    if not np.isclose(vp1, vp1_calc, rtol=1e-3).all():
+        plt.loglog(freq0, np.abs(vp1), label='measured')
+        plt.loglog(freq0, np.abs(vp1_calc), 'g--', label='calculated')
+        plt.xlabel('Frequency (in Hz)')
+        plt.ylabel('Value')
+        plt.legend()
+        plt.show()
+
+    results = dict(
+        cpp=estimate_cap(freq0, zpp),
+        cpm=estimate_cap(freq0, zpm),
+    )
+    if passive_type == 'cap':
+        results['cc'] = estimate_cap(freq0, zc)
+    elif passive_type == 'res':
+        results['res'] = np.mean(zc).real
+    else:
+        raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res".')
+    return results

@@ -26,7 +26,7 @@ from bag.design.module import Module
 from bag.simulation.data import AnalysisType, SimData, SimNetlistInfo, netlist_info_from_dict
 from bag.simulation.core import TestbenchManager
 
-from ...schematic.digital_tb_tran import bag3_testbenches__digital_tb_tran
+from ...schematic.generic_tb import bag3_testbenches__generic_tb
 from ..data.tran import bits_to_pwl_iter, get_first_crossings, EdgeType
 
 
@@ -113,7 +113,7 @@ class CombLogicTimingTB(TestbenchManager):
 
     @classmethod
     def get_schematic_class(cls) -> Type[Module]:
-        return bag3_testbenches__digital_tb_tran
+        return bag3_testbenches__generic_tb
 
     def pre_setup(self, sch_params: Optional[Mapping[str, Any]]) -> Optional[Mapping[str, Any]]:
         """Set up PWL waveform files."""
