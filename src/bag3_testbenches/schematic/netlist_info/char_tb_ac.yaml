@@ -580,6 +580,62 @@ shapes:
       visible: true
       drafting: true
       text: gnd!
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: plus
+      points:
+        -
+          - 50
+          - -230
+        -
+          - 50
+          - -190
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: plus
+      origin:
+        - 43
+        - -194
+      alignment: 8
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: plus
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: minus
+      points:
+        -
+          - 50
+          - -130
+        -
+          - 50
+          - -90
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: minus
+      origin:
+        - 43
+        - -126
+      alignment: 2
+      orient: R90
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: minus
 instances:
   Cc:
     lib_name: analogLib
@@ -664,6 +720,27 @@ instances:
       acm:
         - 3
         - 1
+    is_primitive: true
+  IBIAS:
+    lib_name: analogLib
+    cell_name: idc
+    view_name: symbol
+    xform:
+      - 50
+      - -130
+      - R0
+    bbox:
+      - -67
+      - -194
+      - 144
+      - -126
+    connections:
+      MINUS: plus
+      PLUS: minus
+    params:
+      idc:
+        - 3
+        - idc
     is_primitive: true
   VVDD:
     lib_name: analogLib
@@ -767,22 +844,22 @@ instances:
 props:
   connectivityLastUpdated:
     - 0
-    - 1982
+    - 2524
   instance#:
     - 0
     - 3
   lastSchematicExtraction:
     - 4
-    - time_val: 1621493387
+    - time_val: 1623563106
   net#:
     - 0
-    - 3
+    - 2
   pin#:
     - 0
     - 4
   schGeometryLastUpdated:
     - 0
-    - 1982
+    - 2524
   schGeometryVersion:
     - 3
     - sch.ds.gm.1.4
@@ -792,10 +869,10 @@ props:
 app_defs:
   _dbLastSavedCounter:
     - 0
-    - 1982
+    - 2524
   _dbvCvTimeStamp:
     - 0
-    - 1982
+    - 2524
   cdbRevision:
     - 0
     - 227612

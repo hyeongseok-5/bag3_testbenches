@@ -68,7 +68,7 @@ class bag3_testbenches__char_tb_ac(Module):
             sup_conns='Connections for AC supply',
             dut_lib='DUT library name',
             dut_cell='DUT cell name',
-            passive_type='"cap" or "res"',
+            passive_type='"cap" or "res" or "esd"',
         )
 
     @classmethod
@@ -101,7 +101,7 @@ class bag3_testbenches__char_tb_ac(Module):
         else:
             if passive_type == 'cap':
                 self.remove_instance('XDUT')
-            elif passive_type == 'res':
+            elif passive_type == 'res' or passive_type == 'esd':
                 self.remove_instance('Cc')
                 self.remove_instance('Cpp')
                 self.remove_instance('Cpm')
@@ -111,3 +111,5 @@ class bag3_testbenches__char_tb_ac(Module):
                 raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res".')
 
         self.reconnect_instance('IAC', sup_conns)
+        if passive_type == 'cap' or passive_type == 'res':
+            self.remove_instance('IBIAS')

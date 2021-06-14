@@ -28,7 +28,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Type, Union, Optional, Any, cast, Sequence, Mapping
+from typing import Type, Union, Optional, Any, cast, Sequence, Mapping, Tuple
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
@@ -39,6 +39,7 @@ from bag.simulation.data import SimNetlistInfo, netlist_info_from_dict
 from bag.simulation.cache import SimulationDB, DesignInstance, SimResults, MeasureResult
 from bag.design.module import Module
 from bag.concurrent.util import GatherHelper
+from bag.math import float_to_si_string
 
 from ...schematic.char_tb_ac import bag3_testbenches__char_tb_ac
 
@@ -78,16 +79,26 @@ class CharACMeas(MeasurementManager):
     async def async_measure_performance(self, name: str, sim_dir: Path, sim_db: SimulationDB,
                                         dut: Optional[DesignInstance]) -> Mapping[str, Any]:
         helper = GatherHelper()
-        for idx in range(2):
-            helper.append(self.async_meas_case(name, sim_dir, sim_db, dut, idx))
+        ibias_list = self.specs.get('ibias_list', [0])
+        for ibias in ibias_list:
+            for idx in range(2):
+                helper.append(self.async_meas_case(name, sim_dir, sim_db, dut, idx, ibias))
 
         meas_results = await helper.gather_err()
         passive_type: str = self.specs['passive_type']
-        ans = compute_passives(meas_results, passive_type)
+        ans = {}
+        for idx, ibias in enumerate(ibias_list):
+            midx = idx * 2
+            _results = meas_results[midx:(midx + 2)]
+            _ans = compute_passives(_results, passive_type)
+            ans[idx] = dict(
+                **_ans,
+                ibias=ibias,
+            )
         return ans
 
     async def async_meas_case(self, name: str, sim_dir: Path, sim_db: SimulationDB, dut: Optional[DesignInstance],
-                              case_idx: int) -> Mapping[str, Any]:
+                              case_idx: int, ibias: float = 0.0) -> Mapping[str, Any]:
         if case_idx == 0:
             sup_conns = [('PLUS', 'plus'), ('MINUS', 'minus')]
         elif case_idx == 1:
@@ -99,8 +110,9 @@ class CharACMeas(MeasurementManager):
             **self.specs['tbm_specs']['ac_meas'],
             sim_envs=self.specs['sim_envs'],
         )
+        tbm_specs['sim_params']['idc'] = ibias
         tbm = cast(CharACTB, self.make_tbm(CharACTB, tbm_specs))
-        tbm_name = f'{name}_{case_idx}'
+        tbm_name = f'{name}_{case_idx}_{float_to_si_string(ibias)}'
         tb_params = dict(
             extracted=self.specs['tbm_specs'].get('extracted', True),
             sup_conns=sup_conns,
@@ -113,8 +125,18 @@ class CharACMeas(MeasurementManager):
 
 
 def estimate_cap(freq: np.ndarray, zc: np.ndarray) -> float:
+    """assume zc = 1 / jwC"""
     fit = np.polyfit(2 * np.pi * freq, - 1 / np.imag(zc), 1)
     return fit[0]
+
+
+def estimate_esd(freq: np.ndarray, zc: np.ndarray) -> Tuple[float, float]:
+    """assume zc = R / (1 + jwCR); returns C, R"""
+    yc = 1 / zc  # yc = (1/R) + jwC
+    fit = np.polyfit(2 * np.pi * freq, np.imag(yc), 1)
+    cap: float = fit[0]
+    res: float = 1 / np.mean(yc.real)
+    return cap, res
 
 
 def compute_passives(meas_results: Sequence[Mapping[str, Any]], passive_type: str) -> Mapping[str, Any]:
@@ -161,6 +183,8 @@ def compute_passives(meas_results: Sequence[Mapping[str, Any]], passive_type: st
         results['cc'] = estimate_cap(freq0, zc)
     elif passive_type == 'res':
         results['res'] = np.mean(zc).real
+    elif passive_type == 'esd':
+        results['cc'], results['res'] = estimate_esd(freq0, zc)
     else:
-        raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res".')
+        raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res" or "esd".')
     return results
