@@ -96,7 +96,7 @@ class bag3_testbenches__generic_tb(Module):
                dut_params: Optional[Param],
                no_conns: Sequence[str],
                src_list: Sequence[Mapping[str, Any]],
-               harnesses_cell: Optional[Sequence[str]],
+               harnesses_cell: Optional[Sequence[Tuple[str, str]]],
                harnesses_list: Optional[Sequence[Mapping[str, Any]]]) -> None:
         """Design the testbench.
 
@@ -131,8 +131,8 @@ class bag3_testbenches__generic_tb(Module):
             Connects the content of this list to noConn.
         src_list : Sequence[Mapping[str, Any]]
             list of sources and loads.
-        harnesses_cell : Optional[Sequence[str]]
-            list of available harness cell names
+        harnesses_cell : Optional[Sequence[Tuple[str, str]]]
+            list of available harness lib and cell names
         harnesses_list : Optional[Sequence[Mapping[str, Any]]]
             list of harnesses used in the TB with harness_idx and conns.
         """
@@ -183,9 +183,9 @@ class bag3_testbenches__generic_tb(Module):
 
                 # now replace new instance with new master, if necessary
                 harness_idx: int = harness_config['harness_idx']
-                cell = harnesses_cell[harness_idx]
-                if cell != prev_cell:
-                    self.replace_instance_master(name, dut_lib, cell, static=True, keep_connections=True)
+                _lib, _cell = harnesses_cell[harness_idx]
+                if _cell != prev_cell:
+                    self.replace_instance_master(name, _lib, _cell, static=True, keep_connections=True)
 
                 # now reconnect new instance
                 conns: Sequence[Tuple[str, str]] = harness_config['conns']
@@ -193,7 +193,7 @@ class bag3_testbenches__generic_tb(Module):
 
                 # setup for next harness
                 prev_name = name
-                prev_cell = cell
+                prev_cell = _cell
 
         # setup PWL files
         def get_path_str(fname: str) -> str:

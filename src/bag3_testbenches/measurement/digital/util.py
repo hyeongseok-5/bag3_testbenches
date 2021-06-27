@@ -32,7 +32,7 @@ def setup_digital_tran(specs: Mapping[str, Any], dut: Optional[DesignInstance],
         # check if it is specified in specs
         wrapper_params = specs.get('wrapper_params', None)
     if wrapper_params is None:
-        dut_pins = list(dut.sch_master.pins.keys())
+        dut_pins = dut.pin_names
         pwr_domain: Mapping[str, Tuple[str, str]] = tbm_specs_orig['pwr_domain']
         tb_params = {}
     else:
