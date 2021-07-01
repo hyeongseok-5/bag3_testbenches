@@ -58,8 +58,8 @@ class bag3_testbenches__generic_tb(Module):
     @classmethod
     def get_params_info(cls) -> Mapping[str, str]:
         return dict(
-            dut_lib='Transistor DUT library name.',
-            dut_cell='Transistor DUT cell name.',
+            dut_lib='DUT library name.',
+            dut_cell='DUT cell name.',
             in_file_list='input PWL waveform file list.',
             clk_file_list='clk PWL waveform file list.',
             load_list='output load capacitance list.',
@@ -162,12 +162,18 @@ class bag3_testbenches__generic_tb(Module):
                                           conns=dict(PLUS=pos_term, MINUS=neg_term)))
 
         # setup DUT
-        dut_static = dut_params is None
-        self.replace_instance_master('XDUT', dut_lib, dut_cell, static=dut_static,
-                                     keep_connections=True)
-        if not dut_static:
-            self.instances['XDUT'].design(**dut_params)
-        self.reconnect_instance('XDUT', ((k, v) for k, v in dut_conns.items()))
+        if dut_cell:
+            no_dut = False
+            dut_static = dut_params is None
+            self.replace_instance_master('XDUT', dut_lib, dut_cell, static=dut_static,
+                                         keep_connections=True)
+            if not dut_static:
+                self.instances['XDUT'].design(**dut_params)
+            self.reconnect_instance('XDUT', ((k, v) for k, v in dut_conns.items()))
+        else:
+            no_dut = True
+            if not harnesses_list:
+                self.remove_instance('XDUT')
 
         # setup harnesses
         if harnesses_list:
@@ -179,7 +185,10 @@ class bag3_testbenches__generic_tb(Module):
                 # first array previous DUT / harness to avoid overlap of symbols
                 name = f'XHAR{idx}'
                 self.array_instance(prev_name, ['X0', name])
-                self.rename_instance('X0', prev_name)
+                if prev_name == 'XDUT' and no_dut:
+                    self.remove_instance('X0')
+                else:
+                    self.rename_instance('X0', prev_name)
 
                 # now replace new instance with new master, if necessary
                 harness_idx: int = harness_config['harness_idx']

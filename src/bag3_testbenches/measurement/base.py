@@ -202,7 +202,7 @@ class GenericTB(TestbenchManager, abc.ABC):
 
         specs = self.specs
         sup_values: Mapping[str, Union[float, Mapping[str, float]]] = specs['sup_values']
-        dut_pins: Sequence[str] = specs['dut_pins']
+        dut_pins: Sequence[str] = specs['dut_pins'] if 'dut_cell' in sch_params else []
         load_list: Sequence[Mapping[str, Any]] = specs.get('load_list', [])
 
         src_list: List[Mapping[str, Any]] = specs.get('src_list', [])
@@ -270,6 +270,7 @@ class GenericTB(TestbenchManager, abc.ABC):
                 raise ValueError('Specify either "pin" or "conns".')
             value: Union[float, str] = params['value']
             dev_type: str = params['type']
+            name: Optional[str] = params.get('name')
             if 'nin' in params:
                 if not pin:
                     raise ValueError('If "nin" is specified, also specify "pin". Otherwise just use "conns".')
@@ -279,16 +280,16 @@ class GenericTB(TestbenchManager, abc.ABC):
                 for pin_name, nin_name in zip(chain(pos_pins, neg_pins),
                                               chain(npos_pins, nneg_pins)):
                     src_load_list.append(dict(type=dev_type, lib='analogLib', value=value,
-                                              conns=dict(PLUS=pin_name, MINUS=nin_name)))
+                                              conns=dict(PLUS=pin_name, MINUS=nin_name), name=name))
             else:
                 if pin:
                     gnd_name = self.get_pin_supplies(pin, pwr_domain)[0]
                     for pin_name in chain(pos_pins, neg_pins):
                         src_load_list.append(dict(type=dev_type, lib='analogLib', value=value,
-                                                  conns=dict(PLUS=pin_name, MINUS=gnd_name)))
+                                                  conns=dict(PLUS=pin_name, MINUS=gnd_name), name=name))
                 else:
                     src_load_list.append(dict(type=dev_type, lib='analogLib', value=value,
-                                              conns=conns))
+                                              conns=conns, name=name))
 
     def get_pin_supply_values(self, pin_name: str, data: SimData) -> Tuple[np.ndarray, np.ndarray]:
         pwr_domain: Mapping[str, Tuple[str, str]] = self.specs['pwr_domain']
