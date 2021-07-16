@@ -181,6 +181,7 @@ def compute_passives(meas_results: Sequence[Mapping[str, Any]], passive_type: st
     )
     if passive_type == 'cap':
         results['cc'] = estimate_cap(freq0, zc)
+        results['r_series'] = np.mean(zc).real
     elif passive_type == 'res':
         results['res'] = np.mean(zc).real
     elif passive_type == 'esd':
