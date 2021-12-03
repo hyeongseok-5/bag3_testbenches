@@ -11,11 +11,11 @@ from bag.simulation.core import TestbenchManager
 from bag.simulation.data import SimData
 from bag.concurrent.util import GatherHelper
 
-from ..sp.base import SPTB
+from ..ac.base import ACTB
 from ..data.tran import get_first_crossings, EdgeType
 
 
-class MOSSPMeas(MeasurementManager):
+class MOSACMeas(MeasurementManager):
     def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo,
                      harnesses: Optional[Sequence[DesignInstance]] = None
                      ) -> Tuple[Union[Tuple[TestbenchManager, Mapping[str, Any]],
@@ -47,9 +47,9 @@ class MOSSPMeas(MeasurementManager):
 
     async def async_meas_pvt(self, name: str, sim_dir: Path, sim_db: SimulationDB, dut: Optional[DesignInstance],
                              harnesses: Optional[Sequence[DesignInstance]], pvt: str) -> Mapping[str, Any]:
-        # add port on G and D
-        load_list = [dict(conns={'PLUS': 'g', 'MINUS': 's'}, type='port', value={'r': 50, 'vdc': 'vgs'}, name='PORTG'),
-                     dict(conns={'PLUS': 'd', 'MINUS': 's'}, type='port', value={'r': 50, 'vdc': 'vds'}, name='PORTD')]
+        # add AC sources on G and D
+        load_list = [dict(pin='g', nin='s', type='vdc', value={'vdc': 'vgs', 'acm': 1}, name='VDCG'),
+                     dict(pin='d', nin='s', type='vdc', value={'vdc': 'vds'}, name='VDCD')]
 
         # set vgs and vds sweep info
         vds_val = self.specs['vds_val']
@@ -62,10 +62,9 @@ class MOSSPMeas(MeasurementManager):
             swp_info=[('vds', dict(type='LIST', values=vds_val)),
                       ('vgs', dict(type='LIST', values=vgs_val))],
             dut_pins=dut.pin_names,
-            param_type='Y',
-            ports=['PORTG', 'PORTD'],
+            save_outputs=['VDCG:p', 'VDCD:p'],
         )
-        tbm = cast(SPTB, self.make_tbm(SPTB, tbm_specs))
+        tbm = cast(ACTB, self.make_tbm(ACTB, tbm_specs))
         sim_results = await sim_db.async_simulate_tbm_obj(name, sim_dir, dut, tbm, {'dut_conns': {'b': 's', 'd': 'd',
                                                                                                   'g': 'g', 's': 's'}},
                                                           harnesses=harnesses)
@@ -75,38 +74,27 @@ class MOSSPMeas(MeasurementManager):
 
 def calc_ft_fmax(sim_data: SimData) -> Mapping[str, Any]:
     freq = sim_data['freq']
-    y11 = sim_data['y11']
-    y12 = sim_data['y12']
-    y21 = sim_data['y21']
-    y22 = sim_data['y22']
+    i_g = sim_data['VDCG:p']
+    i_d = sim_data['VDCD:p']
 
     # calculate fT: freq where h21 reaches 1
-    h21 = y21 / y11
+    h21 = i_d / i_g
     ft = get_first_crossings(freq, np.abs(h21), 1, etype=EdgeType.FALL)
 
-    # calculate fmax: freq where unilateral gain U reaches 1
-    _num = np.abs(y21 - y12) ** 2
-    _den = 4 * (y11.real * y22.real - y12.real * y21.real)
-    ug = _num / _den
-    fmax = get_first_crossings(freq, ug, 1, etype=EdgeType.FALL)
-
-    return dict(ft=ft[0], fmax=fmax[0], vgs=sim_data['vgs'], vds=sim_data['vds'])
+    return dict(ft=ft[0], vgs=sim_data['vgs'], vds=sim_data['vds'])
 
 
 def plot_results(results: Mapping[str, Any]) -> None:
     vgs = None
     vds = None
-    fig, (ax0, ax1) = plt.subplots(1, 2)
+    fig, (ax0) = plt.subplots(1, 1)
     ax0.set(xlabel='vgs (V)', ylabel='fT (GHz)', title='fT vs vgs')
-    ax1.set(xlabel='vgs (V)', ylabel='fmax (GHz)', title='fmax vs vgs')
     for sim_env, _results in results.items():
         if vgs is None:
             vgs = _results['vgs']
             vds = _results['vds']
         for idx, _vds in enumerate(vds):
             ax0.plot(vgs, _results['ft'][idx] * 1e-9, label=f'vds={_vds}, {sim_env}')
-            ax1.plot(vgs, _results['fmax'][idx] * 1e-9, label=f'vds={_vds}, {sim_env}')
     ax0.legend()
-    ax1.legend()
     plt.tight_layout()
     plt.show()
