@@ -47,9 +47,19 @@ class MOSSPMeas(MeasurementManager):
 
     async def async_meas_pvt(self, name: str, sim_dir: Path, sim_db: SimulationDB, dut: Optional[DesignInstance],
                              harnesses: Optional[Sequence[DesignInstance]], pvt: str) -> Mapping[str, Any]:
-        # add port on G and D
-        load_list = [dict(conns={'PLUS': 'g', 'MINUS': 's'}, type='port', value={'r': 50, 'vdc': 'vgs'}, name='PORTG'),
-                     dict(conns={'PLUS': 'd', 'MINUS': 's'}, type='port', value={'r': 50, 'vdc': 'vds'}, name='PORTD')]
+        # add port on G and D using dcblock
+        load_list = [dict(pin='gport', nin='s', type='port', value={'r': 50}, name='PORTG'),
+                     dict(pin='gport', nin='g', type='dcblock', value=''),
+                     dict(pin='dport', nin='s', type='port', value={'r': 50}, name='PORTD'),
+                     dict(pin='dport', nin='d', type='dcblock', value=''),
+                     ]
+
+        # add DC bias using dcfeed
+        load_list.extend([dict(pin='gbias', nin='s', type='vdc', value='vgs'),
+                          dict(pin='gbias', nin='g', type='dcfeed', value=''),
+                          dict(pin='dbias', nin='s', type='vdc', value='vds'),
+                          dict(pin='dbias', nin='d', type='dcfeed', value=''),
+                          ])
 
         # set vgs and vds sweep info
         vds_val = self.specs['vds_val']
