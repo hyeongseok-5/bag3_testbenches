@@ -57,4 +57,5 @@ class TranTB(GenericTB):
 
         sim_setup = self.get_netlist_info_dict()
         sim_setup['analyses'] = [tran_dict]
+        sim_setup['init_voltages'] = specs.get('ic', {})
         return netlist_info_from_dict(sim_setup)
