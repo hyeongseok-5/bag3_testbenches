@@ -30,6 +30,7 @@
 
 from typing import Type, Union, Optional, Any, cast, Sequence, Mapping, Tuple
 from pathlib import Path
+from shutil import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -77,7 +78,7 @@ class CharACMeas(MeasurementManager):
         raise NotImplementedError
 
     async def async_measure_performance(self, name: str, sim_dir: Path, sim_db: SimulationDB,
-                                        dut: Optional[DesignInstance]) -> Mapping[str, Any]:
+                                        dut: Optional[DesignInstance]) -> Mapping[int, Mapping[str, Any]]:
         helper = GatherHelper()
         ibias_list = self.specs.get('ibias_list', [0])
         for ibias in ibias_list:
@@ -113,12 +114,24 @@ class CharACMeas(MeasurementManager):
         tbm_specs['sim_params']['idc'] = ibias
         tbm = cast(CharACTB, self.make_tbm(CharACTB, tbm_specs))
         tbm_name = f'{name}_{case_idx}_{float_to_si_string(ibias)}'
+        sim_dir = sim_dir / tbm_name
+
+        passive_type: str = self.specs['passive_type']
+        if passive_type == 'ind':
+            sp_file = Path(self.specs['sp_file'])
+            ind_sp = f'{sp_file.stem}.s1p'
+            sim_dir.mkdir(parents=True, exist_ok=True)
+            copy(sp_file, sim_dir / ind_sp)
+        else:
+            ind_sp = ''
+
         tb_params = dict(
             extracted=self.specs['tbm_specs'].get('extracted', True),
             sup_conns=sup_conns,
-            passive_type=self.specs['passive_type'],
+            passive_type=passive_type,
+            ind_sp=ind_sp,
         )
-        sim_results = await sim_db.async_simulate_tbm_obj(tbm_name, sim_dir / tbm_name, dut, tbm,
+        sim_results = await sim_db.async_simulate_tbm_obj(tbm_name, sim_dir, dut, tbm,
                                                           tb_params=tb_params)
         data = sim_results.data
         return dict(freq=data['freq'], plus=np.squeeze(data['plus']), minus=np.squeeze(data['minus']))
@@ -128,6 +141,37 @@ def estimate_cap(freq: np.ndarray, zc: np.ndarray) -> float:
     """assume zc = 1 / jwC"""
     fit = np.polyfit(2 * np.pi * freq, - 1 / np.imag(zc), 1)
     return fit[0]
+
+
+def estimate_ind(freq: np.ndarray, zc: np.ndarray) -> Mapping[str, float]:
+    """assume res and ind in series; cap in parallel"""
+    w = 2 * np.pi * freq
+
+    # find SRF: max freq where zc.imag goes from positive to negative
+    loc1 = np.where(zc.imag > 0)[0][-1]
+    # Linearly interpolate between loc and (loc + 1)
+    w1, z1 = w[loc1], zc.imag[loc1]
+    w2, z2 = w[loc1 + 1], zc.imag[loc1 + 1]
+    w0 = w2 - z2 * (w2 - w1) / (z2 - z1)
+
+    # upto 0.1 * SRF, assume zc is just R + jwL
+    idx0 = np.where(w < 0.1 * w0)[0][-1]
+    res = np.mean(zc.real[:idx0])
+    _fit = np.polyfit(w[:idx0], zc.imag[:idx0], 1)
+    ind = _fit[0]
+
+    cap = 1 / (w0 * w0 * ind)
+    ans = dict(ind=ind, res=res, cap=cap)
+
+    # --- Debug plots --- #
+    # plt.semilogx(freq[:idx0], zc.imag[:idx0], label='Measured')
+    # plt.semilogx(freq[:idx0], w[:idx0] * ind, label='Estimated')
+    # plt.xlabel('Frequency (in Hz)')
+    # plt.ylabel('Value')
+    # plt.legend()
+    # plt.show()
+
+    return ans
 
 
 def estimate_esd(freq: np.ndarray, zc: np.ndarray) -> Tuple[float, float]:
@@ -186,6 +230,18 @@ def compute_passives(meas_results: Sequence[Mapping[str, Any]], passive_type: st
         results['res'] = np.mean(zc).real
     elif passive_type == 'esd':
         results['cc'], results['res'] = estimate_esd(freq0, zc)
+    elif passive_type == 'ind':
+        ind_values = estimate_ind(freq0, zc)
+        results.update(ind_values)
+        # --- Debug plots --- #
+        warr = 2 * np.pi * freq0
+        z_est = 1 / (1 / (ind_values['res'] + 1j * warr * ind_values['ind']) + 1j * warr * ind_values['cap'])
+        plt.semilogx(freq0, zc.imag, label='Measured')
+        plt.semilogx(freq0, z_est.imag, label='Estimated')
+        plt.xlabel('Frequency (in Hz)')
+        plt.ylabel('Value')
+        plt.legend()
+        plt.show()
     else:
-        raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res" or "esd".')
+        raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res" or "esd" or "ind".')
     return results

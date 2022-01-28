@@ -68,15 +68,16 @@ class bag3_testbenches__char_tb_ac(Module):
             sup_conns='Connections for AC supply',
             dut_lib='DUT library name',
             dut_cell='DUT cell name',
-            passive_type='"cap" or "res" or "esd"',
+            passive_type='"cap" or "res" or "esd" or "ind"',
+            ind_sp='s parameter file for inductor',
         )
 
     @classmethod
     def get_default_param_values(cls) -> Dict[str, Any]:
-        return dict(extracted=True)
+        return dict(dut_lib='', dut_cell='', extracted=True, ind_sp='')
 
     def design(self, extracted: bool, sup_conns: Sequence[Tuple[str, str]],
-               dut_lib: str, dut_cell: str, passive_type: str) -> None:
+               dut_lib: str, dut_cell: str, passive_type: str, ind_sp: str) -> None:
         """To be overridden by subclasses to design this module.
 
         This method should fill in values for all parameters in
@@ -101,12 +102,17 @@ class bag3_testbenches__char_tb_ac(Module):
         else:
             if passive_type == 'cap':
                 self.remove_instance('XDUT')
-            elif passive_type == 'res' or passive_type == 'esd':
-                self.remove_instance('Cc')
+            elif passive_type == 'res' or passive_type == 'esd' or passive_type == 'ind':
                 self.remove_instance('Cpp')
                 self.remove_instance('Cpm')
-                self.replace_instance_master('XDUT', dut_lib, dut_cell, keep_connections=True, static=True)
-                self.reconnect_instance('XDUT', [('plus', 'plus'), ('minus', 'minus')])
+                if passive_type == 'ind':
+                    self.remove_instance('XDUT')
+                    self.design_sources_and_loads([{'conns': {'t1': 'plus', 'b1': 'minus'},
+                                                    'type': 'n1port', 'value': ind_sp}], 'Cc')
+                else:
+                    self.remove_instance('Cc')
+                    self.replace_instance_master('XDUT', dut_lib, dut_cell, keep_connections=True, static=True)
+                    self.reconnect_instance('XDUT', [('plus', 'plus'), ('minus', 'minus')])
             else:
                 raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res".')
 
