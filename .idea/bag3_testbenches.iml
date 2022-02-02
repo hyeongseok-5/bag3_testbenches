@@ -6,10 +6,9 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/OA" />
     </content>
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="Python 3.7" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="BAG_framework" />
     <orderEntry type="module" module-name="xbase_bcad" />
-    <orderEntry type="module" module-name="bag3_liberty" />
   </component>
 </module>
