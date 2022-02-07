@@ -9,13 +9,14 @@ import numpy as np
 import scipy.interpolate as interp
 import scipy.optimize as sciopt
 
+from bag.concurrent.util import GatherHelper
 from bag.design.module import Module
 from bag.io.file import write_yaml
 from bag.io.sim_data import save_sim_results, load_sim_file
 from bag.math.interpolate import LinearInterpolator
 from bag.simulation.cache import SimulationDB, DesignInstance, SimResults, MeasureResult
 from bag.simulation.core import TestbenchManager
-from bag.simulation.data import AnalysisType, SimNetlistInfo, SimData, netlist_info_from_dict
+from bag.simulation.data import AnalysisType, SimNetlistInfo, SimData, AnalysisData, netlist_info_from_dict
 from bag.simulation.measure import MeasurementManager, MeasInfo
 
 from ...schematic.mos_tb_ibias import bag3_testbenches__mos_tb_ibias
@@ -54,17 +55,13 @@ class MOSIdTB(TestbenchManager):
 
         return super().pre_setup(sch_params)
 
-    def get_vgs_range(self, data: SimData):
-        ibias_min_seg = self.specs['ibias_min_seg']
-        ibias_max_seg = self.specs['ibias_max_seg']
-        vgs_res = self.specs['vgs_resolution']
-        seg = self.specs['seg']
-        is_nmos = self.specs['is_nmos']
-
+    @classmethod
+    def get_vgs_range(cls, data: SimData, ibias_min_seg: float, ibias_max_seg: float, vgs_resolution: float,
+                      seg: int, is_nmos: bool, **kwargs: Dict[str, Any]) -> Dict[str, Any]:
         # invert NMOS ibias sign
         ibias_sgn = -1.0 if is_nmos else 1.0
 
-        vgs = data['vgs'][0, :]  # remove corner index
+        vgs = data['vgs']
         ibias_key = 'VD:p'
         ibias = data[ibias_key] * ibias_sgn
 
@@ -76,14 +73,14 @@ class MOSIdTB(TestbenchManager):
         except ValueError:
             ivec_max = ivec_min = ibias
 
-        vgs1 = self._get_best_crossing(vgs, ivec_max, ibias_min_seg * seg)
-        vgs2 = self._get_best_crossing(vgs, ivec_min, ibias_max_seg * seg)
+        vgs1 = cls._get_best_crossing(vgs, ivec_max, ibias_min_seg * seg)
+        vgs2 = cls._get_best_crossing(vgs, ivec_min, ibias_max_seg * seg)
 
         vgs_min = min(vgs1, vgs2)
         vgs_max = max(vgs1, vgs2)
 
-        vgs_min = math.floor(vgs_min / vgs_res) * vgs_res
-        vgs_max = math.ceil(vgs_max / vgs_res) * vgs_res
+        vgs_min = math.floor(vgs_min / vgs_resolution) * vgs_resolution
+        vgs_max = math.ceil(vgs_max / vgs_resolution) * vgs_resolution
 
         return vgs_min, vgs_max
 
@@ -177,12 +174,9 @@ class MOSSPTB(TestbenchManager):
 
         return super().pre_setup(sch_params)
 
-    def get_ss_params(self, data: SimData) -> Dict[str, Any]:
-        cfit_method = self.specs['cfit_method']
-        sp_freq = self.specs['sp_freq']
-        seg = self.specs['seg']
-        is_nmos = self.specs['is_nmos']
-
+    @classmethod
+    def get_ss_params(cls, data: SimData, sim_envs: List[str], cfit_method: str, sp_freq: float, seg: int,
+                      is_nmos: bool, **kwargs: Dict[str, Any]) -> Dict[str, Any]:
         swp_vars = data.sweep_params
 
         data.open_analysis(AnalysisType.DC)
@@ -195,7 +189,7 @@ class MOSSPTB(TestbenchManager):
         data.open_analysis(AnalysisType.SP)
 
         data_dict = data._cur_ana._data
-        ss_dict = self.mos_y_to_ss(data_dict, sp_freq, seg, ibias, cfit_method=cfit_method)
+        ss_dict = cls.mos_y_to_ss(data_dict, sp_freq, seg, ibias, cfit_method=cfit_method)
 
         new_result = {}
         new_shape = list(data.data_shape)
@@ -205,7 +199,7 @@ class MOSSPTB(TestbenchManager):
         for key, val in ss_dict.items():
             new_result[key] = val.reshape(new_shape)
             sweep_params[key] = swp_vars
-        new_result['corner'] = np.array(self.sim_envs)
+        new_result['corner'] = np.array(sim_envs)
 
         for var in swp_vars:
             if var == 'corner':
@@ -445,7 +439,6 @@ class MOSCharSS(MeasurementManager):
     def tbm_order(self) -> List[str]:
         """
         Returns a list of measurement manager names in the order which should be run
-        Pulse response measurement should be run first to determine optimal input arrival time
 
         """
         return ['ibias', 'sp', 'noise']
@@ -471,18 +464,23 @@ class MOSCharSS(MeasurementManager):
     # As async_measure_performance has been rewritten to better suit MOSCharSS behavior,
     # these methods are no longer needed.
 
-    def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo):
+    def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo,
+                     harnesses: Optional[Sequence[DesignInstance]] = None
+                     ) -> Tuple[Union[Tuple[TestbenchManager, Mapping[str, Any]],
+                                      MeasurementManager], bool]:
         raise NotImplementedError
 
-    def initialize(self, sim_db: SimulationDB, dut: DesignInstance):
+    def initialize(self, sim_db: SimulationDB, dut: DesignInstance,
+                   harnesses: Optional[Sequence[DesignInstance]] = None) -> Tuple[bool, MeasInfo]:
         raise NotImplementedError
 
-    def process_output(self, cur_info: MeasInfo, sim_results: Union[SimResults, MeasureResult]):
+    def process_output(self, cur_info: MeasInfo, sim_results: Union[SimResults, MeasureResult]
+                       ) -> Tuple[bool, MeasInfo]:
         raise NotImplementedError
 
-    def add_tbm(self, tbm_name: str) -> TestbenchManager:
+    def get_tbm_specs(self, tbm_name: str) -> Dict[str, Any]:
         """
-        Add/create a testbench manager
+        Get testbench manager specs by key (tbm_name)
 
         Parameters
         ----------
@@ -491,57 +489,82 @@ class MOSCharSS(MeasurementManager):
 
         Returns
         -------
+        Testbench manager specs
+
+        """
+        assert tbm_name in self.tbm_cls_map
+        return self.specs['tbm_specs'][tbm_name]
+
+    def add_tbm(self, tbm_name: str, sim_env: str) -> TestbenchManager:
+        """
+        Add/create a testbench manager
+
+        Parameters
+        ----------
+        tbm_name : str
+            name of testbench manager
+        sim_env : str
+            simulation environment/corner
+
+        Returns
+        -------
         Newly created testbench manager
 
         """
-        assert tbm_name in self.tbm_dict
+        assert tbm_name in self.tbm_cls_map
         tbm_cls = self.tbm_cls_map[tbm_name]
-        self.tbm_dict[tbm_name] = cast(tbm_cls, self.make_tbm(tbm_cls, self.specs['tbm_specs'][tbm_name]))
-        return self.tbm_dict[tbm_name]
+        tbm: TestbenchManager = cast(tbm_cls, self.make_tbm(tbm_cls, self.get_tbm_specs(tbm_name)))
+        tbm.set_sim_envs([sim_env])
+        tbm.commit()
+        return tbm
 
     async def async_measure_performance(self, name: str, sim_dir: Path, sim_db: SimulationDB,
-                                        dut: Optional[DesignInstance]) -> Dict[str, Any]:
+                                        dut: Optional[DesignInstance],
+                                        harnesses: Optional[Sequence[DesignInstance]] = None) -> Mapping[str, Any]:
         """
         A coroutine that performs measurement.
-        This will...
-        1. Acquire every sweep point/configuration (get_swp_list)
-        2. Run simulation for each sweep point (_run_sim)
-        3. Aggregate results and return (aggregate_results)
+
+        Since some technology nodes don't support multi-corner simulations, individual simulations are launched per
+        corner. Post-processed values will be stored in an hdf5 file
 
         Parameters
         ----------
         name : str
-            name of measurement
+            name of this measurement.
         sim_dir : Path
-            simulation directory
+            simulation directory.
         sim_db : SimulationDB
-            the simulation database object
+            the simulation database object.
         dut : Optional[DesignInstance]
-            the DUT to measure
+            the DUT to measure.
+        harnesses : Optional[Sequence[DesignInstance]]
+            the list of DUT and harnesses to measure.
 
         Returns
         -------
-        results dictionary
-
+        output : Mapping[str, Any]
+            the last dictionary returned by process_output().
         """
         assert len(self._sim_envs) > 0
-        self.tbm_dict: Dict[str, TestbenchManager] = {k: None for k in self.tbm_order}
 
         res = {}
+        work_dir = self.get_work_dir(sim_db, sim_dir) or sim_dir
+        ss_fname = str(work_dir / 'ss_params.hdf5')
 
         for idx, tbm_name in enumerate(self.tbm_order):
             if not self._run_tbm[tbm_name]:
                 continue
 
-            tbm = self.add_tbm(tbm_name)
-            sim_results = await sim_db.async_simulate_tbm_obj(tbm_name, sim_dir / tbm_name, dut, tbm, tb_params={})
-            data = sim_results.data
+            gatherer = GatherHelper()
+            for sim_env in self._sim_envs:
+                tbm = self.add_tbm(tbm_name, sim_env)
+                gatherer.append(self._run_sim(tbm_name, sim_dir, sim_db, dut, tbm))
 
-            ss_fname = str(sim_dir / 'ss_params.hdf5')
+            data_list = await gatherer.gather_err()
+            data = self.combine_data_across_corners(data_list)
 
             if tbm_name == 'ibias':
-                tbm: MOSIdTB
-                vgs_range = tbm.get_vgs_range(data)
+                vgs_range = MOSIdTB.get_vgs_range(data, **self.get_tbm_specs(tbm_name))
                 if self._run_tbm['sp']:
                     self.specs['tbm_specs']['sp']['vgs_range'] = vgs_range
                 if self._run_tbm['noise']:
@@ -550,8 +573,7 @@ class MOSCharSS(MeasurementManager):
                 res['vgs_range'] = vgs_range
 
             elif tbm_name == 'sp':
-                tbm: MOSSPTB
-                ss_params = tbm.get_ss_params(data)
+                ss_params = MOSSPTB.get_ss_params(data, **self.get_tbm_specs(tbm_name))
                 # save SS parameters
                 save_sim_results(ss_params, ss_fname)
 
@@ -575,5 +597,102 @@ class MOSCharSS(MeasurementManager):
                 raise ValueError(f"Unknown tbm name {tbm_name}")
 
         write_yaml(sim_dir / f'{name}.yaml', res)
+        write_yaml(work_dir / f'{name}.yaml', res)
 
         return res
+
+    @staticmethod
+    def get_work_dir(sim_db: SimulationDB, sim_dir: Union[Path, str]) -> Optional[Path]:
+        """
+        Returns the work directory to which long-term files should be saved.
+        The simulation directory may point to a temporary directory to store short-term simulation data.
+        If so, compute the long-term directory. If not, return simulation directory.
+
+        Parameters
+        ----------
+        sim_db : SimulationDB
+            the simulation database object.
+        sim_dir : Path
+            simulation directory.
+
+        Returns
+        -------
+        output : Optional[Path]
+            the long-term work directory. If unable to compute, this is None.
+        """
+        if isinstance(sim_dir, str):
+            sim_dir = Path(sim_dir)
+        if sim_dir.is_absolute():
+            try:
+                work_dir = sim_dir.relative_to(sim_db._sim._dir_path)
+            except ValueError:
+                return None
+            else:
+                work_dir.mkdir(parents=True, exist_ok=True)
+                return work_dir
+        else:
+            return sim_dir
+
+    async def _run_sim(self, tbm_name: str, sim_dir: Path, sim_db: SimulationDB, dut: Optional[DesignInstance],
+                       tbm: TestbenchManager) -> SimData:
+        """
+        Runs a simulation.
+
+        Parameters
+        ----------
+        tbm_name : str
+            name of testbench manager
+        sim_dir : Path
+            simulation directory.
+        sim_db : SimulationDB
+            the simulation database object.
+        dut : Optional[DesignInstance]
+            the DUT to measure.
+        tbm : TestbenchManager
+            the testbench manager object.
+
+        Returns
+        -------
+        output : SimData
+            the simulation data.
+        """
+        sim_results = await sim_db.async_simulate_tbm_obj(tbm_name, sim_dir / tbm_name / tbm.sim_envs[0], dut, tbm, tb_params={})
+        return sim_results.data
+
+    def combine_data_across_corners(self, data_list: List[SimData]) -> SimData:
+        """
+        Combines simulation data from separate simulations into one SimData object.
+        Each simulation is expected to have the same setup (testbench configuration, sweep variables, etc.) except for
+        corner.
+
+        Parameters
+        ----------
+        data_list : List[SimData]
+            list of simulation data. The order of this list should correspond to the order of sim_envs.
+
+        Returns
+        -------
+        output : SimData
+            the combined simulation data.
+        """
+        ndata = len(data_list)
+        num_sim_envs = len(self._sim_envs)
+        if ndata != num_sim_envs:
+            raise ValueError(f"data_list (length {ndata}) must have the same length as sim_envs (length {num_sim_envs})")
+
+        data0 = data_list[0]
+        new_data = {}
+        for grp in data0.group_list:
+            ana_list = [sim_data._table[grp] for sim_data in data_list]
+            ana0 = ana_list[0]
+            swp_params = ana0.sweep_params
+            is_md = ana0.is_md
+            new_ana_data = {}
+            for var in ana0._data:
+                if var in swp_params:
+                    new_ana_data[var] = np.squeeze(ana0[var])
+                else:
+                    new_ana_data[var] = np.concatenate([ana[var] for ana in ana_list], axis=0)
+            new_data[grp] = AnalysisData(swp_params, new_ana_data, is_md)
+
+        return SimData(self._sim_envs, new_data, data0.netlist_type)
