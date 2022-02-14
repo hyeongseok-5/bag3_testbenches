@@ -609,6 +609,8 @@ class MOSCharSS(MeasurementManager):
             elif tbm_name == 'noise':
                 ss_params = load_sim_file(ss_fname)
                 temp = 273 + float(tbm.sim_envs[0].split('_')[1])
+                # TODO: should frequency range of gamma calculation be different from
+                # the frequency range of the noise simulation?
                 ss_params = MOSNoiseTB.get_integrated_noise(data, ss_params, temp=temp, **self.get_tbm_specs(tbm_name))
                 save_sim_results(ss_params, ss_fname)
 
