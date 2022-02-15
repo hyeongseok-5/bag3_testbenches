@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Optional, Tuple, Dict, Any, List, Mapping, Seq
 
 import math
 from pathlib import Path
+from copy import deepcopy
 
 import numpy as np
 import scipy.interpolate as interp
@@ -412,8 +413,6 @@ class MOSNoiseTB(TestbenchManager):
             integ_noise_list.append(noise_fun.integrate(fstart_log, fstop_log, axis=-1, logx=True, logy=True, raw=True))
 
         gamma = np.array(integ_noise_list) / (4.0 * 1.38e-23 * temp * ss_data['gm'] * (freq_stop - freq_start))
-
-        from copy import deepcopy
 
         new_result = deepcopy(ss_data)
         new_result['gamma'] = gamma
