@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Optional, Tuple, Dict, Any, List, Mapping, Seq
 
 import math
 from pathlib import Path
+from copy import deepcopy
 
 import numpy as np
 import scipy.interpolate as interp
@@ -127,7 +128,6 @@ class MOSSPTB(TestbenchManager):
         vds_max = self.specs['vds_max']
         vds_num = self.specs['vds_num']
         vgs_num = self.specs['vgs_num']
-        adjust_vbs_sign = self.specs.get('adjust_vbs_sign', True)
         vgs_start, vgs_stop = self.specs['vgs_range']
 
         swp_info = []
@@ -136,24 +136,16 @@ class MOSSPTB(TestbenchManager):
 
         # handle VBS sign and set parameters.
         if isinstance(vbs_val, list):
-            if adjust_vbs_sign:
-                print('adjusting vbs sign')
-                if is_nmos:
-                    vbs_val = sorted((-abs(v) for v in vbs_val))
-                else:
-                    vbs_val = sorted((abs(v) for v in vbs_val))
+            if is_nmos:
+                vbs_val = sorted((-abs(v) for v in vbs_val))
             else:
-                vbs_val = sorted(vbs_val)
-            print('vbs values: {}'.format(vbs_val))
+                vbs_val = sorted((abs(v) for v in vbs_val))
             swp_info.append(('vbs', dict(type='LIST', values=vbs_val)))
         else:
-            if adjust_vbs_sign:
-                print('adjusting vbs sign')
-                if is_nmos:
-                    vbs_val = -abs(vbs_val)
-                else:
-                    vbs_val = abs(vbs_val)
-            print('vbs value: {:.4g}'.format(vbs_val))
+            if is_nmos:
+                vbs_val = -abs(vbs_val)
+            else:
+                vbs_val = abs(vbs_val)
             self.sim_params['vbs'] = vbs_val
 
         # handle VDS/VGS sign for nmos/pmos
@@ -295,33 +287,48 @@ class MOSSPTB(TestbenchManager):
         )
 
 
-# TODO: needs to be "translated" to BAG3 and verified
 class MOSNoiseTB(TestbenchManager):
     """This class sets up the transistor small-signal noise measurement testbench.
     """
-    def __init__(self,
-                 data_fname,  # type: str
-                 tb_name,  # type: str
-                 impl_lib,  # type: str
-                 specs,  # type: Dict[str, Any]
-                 sim_view_list,  # type: Sequence[Tuple[str, str]]
-                 env_list,  # type: Sequence[str]
-                 ):
-        # type: (...) -> None
-        TestbenchManager.__init__(self, data_fname, tb_name, impl_lib, specs, sim_view_list, env_list)
 
-    def setup_testbench(self, tb):
+    @classmethod
+    def get_schematic_class(cls) -> Type[Module]:
+        return bag3_testbenches__mos_tb_noise
+
+    def get_netlist_info(self) -> SimNetlistInfo:
+        freq_start: float = self.specs['freq_start']
+        freq_stop: float = self.specs['freq_stop']
+        num = np.rint(np.log10(freq_stop / freq_start) * self.specs['num_per_dec'])
+        noise_dict = dict(type='NOISE',
+                          param='freq',
+                          sweep=dict(
+                              type='LOG',
+                              start=freq_start,
+                              stop=freq_stop,
+                              num=num,
+                              endpoint=True
+                          ),
+                          # save_outputs=save_outputs,
+                          out_probe='VD'
+                          )
+
+        sim_setup = self.get_netlist_info_dict()
+        sim_setup['analyses'] = [noise_dict]
+        return netlist_info_from_dict(sim_setup)
+
+    def pre_setup(self, sch_params: Optional[Mapping[str, Any]]) -> Optional[Mapping[str, Any]]:
+        is_nmos = self.specs['is_nmos']
         vbs_val = self.specs['vbs']
         vds_min = self.specs['vds_min']
         vds_max = self.specs['vds_max']
         vds_num = self.specs['vds_num']
         vgs_num = self.specs['vgs_num']
-        freq_start = self.specs['freq_start']
-        freq_stop = self.specs['freq_stop']
-        num_per_dec = self.specs['num_per_dec']
 
         vgs_start, vgs_stop = self.specs['vgs_range']
-        is_nmos = self.specs['is_nmos']
+
+        swp_info = []
+        # Add VGS sweep
+        swp_info.append(('vgs', dict(type='LINEAR', start=vgs_start, stop=vgs_stop, num=vgs_num)))
 
         # handle VBS sign and set parameters.
         if isinstance(vbs_val, list):
@@ -329,73 +336,77 @@ class MOSNoiseTB(TestbenchManager):
                 vbs_val = sorted((-abs(v) for v in vbs_val))
             else:
                 vbs_val = sorted((abs(v) for v in vbs_val))
-            tb.set_sweep_parameter('vbs', values=vbs_val)
+            swp_info.append(('vbs', dict(type='LIST', values=vbs_val)))
         else:
             if is_nmos:
                 vbs_val = -abs(vbs_val)
             else:
                 vbs_val = abs(vbs_val)
-            tb.set_parameter('vbs', vbs_val)
-
-        tb.set_parameter('freq_start', freq_start)
-        tb.set_parameter('freq_stop', freq_stop)
-        tb.set_parameter('num_per_dec', num_per_dec)
+            self.sim_params['vbs'] = vbs_val
 
         vgs_vals = np.linspace(vgs_start, vgs_stop, vgs_num + 1)
+
         # handle VDS/VGS sign for nmos/pmos
         if is_nmos:
-            vds_vals = np.linspace(vds_min, vds_max, vds_num + 1)
-            tb.set_sweep_parameter('vds', values=vds_vals)
-            tb.set_sweep_parameter('vgs', values=vgs_vals)
-            tb.set_parameter('vb_dc', 0)
+            self.sim_params['vb_dc'] = 0
+            vds_start, vds_stop = vds_min, vds_max
         else:
-            vds_vals = np.linspace(-vds_max, -vds_min, vds_num + 1)
-            tb.set_sweep_parameter('vds', values=vds_vals)
-            tb.set_sweep_parameter('vgs', values=vgs_vals)
-            tb.set_parameter('vb_dc', abs(vgs_start))
+            if vds_max > vds_min:
+                print('vds_max = {:.4g} > {:.4g} = vds_min, flipping sign'.format(vds_max, vds_min))
+                vds_start, vds_stop = -vds_max, -vds_min
+            else:
+                vds_start, vds_stop = vds_min, vds_max
+            self.sim_params['vb_dc'] = abs(vgs_start)
 
-    def get_integrated_noise(self, data, ss_data, temp, fstart, fstop, scale=1.0):
-        seg = self.specs['seg']
+        swp_info.append(('vds', dict(type='LINEAR', start=vds_start, stop=vds_stop, num=vds_num)))
+        self.set_swp_info(swp_info)
 
-        axis_names = ['corner', 'vbs', 'vds', 'vgs', 'freq']
+        return super().pre_setup(sch_params)
 
-        idn = data['idn']
+    @classmethod
+    def get_integrated_noise(cls, data: SimData, ss_data: Dict[str, Any], temp: float, freq_start: float,
+                             freq_stop: float, seg: int, scale: float = 1.0,
+                             **kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        data.open_analysis(AnalysisType.NOISE)
 
-        ss_swp_names = [name for name in axis_names[1:] if name in data]
-        swp_corner = ('corner' in data)
-        if not swp_corner:
-            data = data.copy()
-            data['corner'] = np.array([self.env_list[0]])
-        corner_list = data['corner']
-        log_freq = np.log(data['freq'])
-        cur_points = [data[name] for name in ss_swp_names]
-        cur_points[-1] = log_freq
+        ss_data_swp_order = ss_data['sweep_params']['gm']
+
+        idn = data['out']
 
         # rearrange array axis
-        swp_vars = data['sweep_params']['idn']
-        new_swp_vars = ['corner', ] + ss_swp_names[:-1]
-        order = [swp_vars.index(name) for name in axis_names if name in swp_vars]
-        idn = np.transpose(idn, axes=order)
-        if not swp_corner:
-            # add dimension that corresponds to corner
-            idn = idn[np.newaxis, ...]
+        old_swp_order = data.sweep_params
+        new_swp_order = list(ss_data_swp_order) + ['freq']
+        transposed_order = [new_swp_order.index(name) for name in old_swp_order]
+        idn = np.transpose(idn, axes=transposed_order)
+
+        noise_swp_vars = new_swp_order
+
+        corner_list = data.sim_envs
+        if not np.all(ss_data['corner'] == corner_list):
+            raise ValueError(f"Inconsistent corners between noise simulation and previous simulations")
+        cur_points = [data[name] for name in noise_swp_vars[1:]]
+        cur_points[-1] = np.log(data['freq'])
 
         # construct new SS parameter result dictionary
-        fstart_log = np.log(fstart)
-        fstop_log = np.log(fstop)
+        fstart_log = np.log(freq_start)
+        fstop_log = np.log(freq_stop)
 
         # rearrange array axis
         idn = np.log(scale / seg * (idn ** 2))
-        delta_list = [1e-6] * len(ss_swp_names)
+        delta_list = [1e-6] * (len(noise_swp_vars) - 1)  # TODO: don't hardcode delta_list
         delta_list[-1] = 1e-3
         integ_noise_list = []
         for idx in range(len(corner_list)):
             noise_fun = LinearInterpolator(cur_points, idn[idx, ...], delta_list, extrapolate=True)
             integ_noise_list.append(noise_fun.integrate(fstart_log, fstop_log, axis=-1, logx=True, logy=True, raw=True))
 
-        gamma = np.array(integ_noise_list) / (4.0 * 1.38e-23 * temp * ss_data['gm'] * (fstop - fstart))
-        self.record_array(ss_data, data, gamma, 'gamma', new_swp_vars)
-        return ss_data
+        gamma = np.array(integ_noise_list) / (4.0 * 1.38e-23 * temp * ss_data['gm'] * (freq_stop - freq_start))
+
+        new_result = deepcopy(ss_data)
+        new_result['gamma'] = gamma
+        new_result['sweep_params']['gamma'] = noise_swp_vars[:-1]
+
+        return new_result
 
 
 class MOSCharSS(MeasurementManager):
@@ -459,6 +470,9 @@ class MOSCharSS(MeasurementManager):
             self._run_tbm[tbm_name] = True
             self.specs['tbm_specs'][tbm_name] = tbm_specs_shared.copy()
             self.specs['tbm_specs'][tbm_name].update(tbm_specs)
+
+        if self._run_tbm['noise'] and not self._run_tbm['sp']:
+            raise ValueError("sp measurement must also be enabled for noise measurement to run")
 
     # MeasurementManager's async_measure_performance utilizes the following 3 functions
     # As async_measure_performance has been rewritten to better suit MOSCharSS behavior,
@@ -580,15 +594,11 @@ class MOSCharSS(MeasurementManager):
                 res['ss_file'] = ss_fname
 
             elif tbm_name == 'noise':
-                # TODO: needs to be verified
-                tbm: MOSNoiseTB
-                temp = self.specs['noise_temp_kelvin']
-                fstart = self.specs['noise_integ_fstart']
-                fstop = self.specs['noise_integ_fstop']
-                scale = self.specs.get('noise_integ_scale', 1.0)
-
                 ss_params = load_sim_file(ss_fname)
-                ss_params = tbm.get_integrated_noise(data, ss_params, temp, fstart, fstop, scale=scale)
+                temp = 273 + float(tbm.sim_envs[0].split('_')[1])
+                # TODO: should frequency range of gamma calculation be different from
+                # the frequency range of the noise simulation?
+                ss_params = MOSNoiseTB.get_integrated_noise(data, ss_params, temp=temp, **self.get_tbm_specs(tbm_name))
                 save_sim_results(ss_params, ss_fname)
 
                 res['ss_file'] = ss_fname

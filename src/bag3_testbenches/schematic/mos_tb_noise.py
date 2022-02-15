@@ -64,9 +64,11 @@ class bag3_testbenches__mos_tb_noise(Module):
             dictionary from parameter names to descriptions.
         """
         return dict(
+            dut_lib="Transistor DUT library name.",
+            dut_cell='Transistor DUT cell name.',
         )
 
-    def design(self) -> None:
+    def design(self, dut_lib: str, dut_cell: str) -> None:
         """To be overridden by subclasses to design this module.
 
         This method should fill in values for all parameters in
@@ -82,4 +84,7 @@ class bag3_testbenches__mos_tb_noise(Module):
         restore_instance()
         array_instance()
         """
-        pass
+        self.replace_instance_master('XDUT', dut_lib, dut_cell, static=True, keep_connections=True)
+        # TODO: implement additional bias control?
+        self.remove_instance('IBIAS')
+        self.remove_instance('VBIAS')
