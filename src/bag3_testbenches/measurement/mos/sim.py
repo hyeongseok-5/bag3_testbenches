@@ -128,7 +128,6 @@ class MOSSPTB(TestbenchManager):
         vds_max = self.specs['vds_max']
         vds_num = self.specs['vds_num']
         vgs_num = self.specs['vgs_num']
-        adjust_vbs_sign = self.specs.get('adjust_vbs_sign', True)
         vgs_start, vgs_stop = self.specs['vgs_range']
 
         swp_info = []
@@ -137,24 +136,16 @@ class MOSSPTB(TestbenchManager):
 
         # handle VBS sign and set parameters.
         if isinstance(vbs_val, list):
-            if adjust_vbs_sign:
-                print('adjusting vbs sign')
-                if is_nmos:
-                    vbs_val = sorted((-abs(v) for v in vbs_val))
-                else:
-                    vbs_val = sorted((abs(v) for v in vbs_val))
+            if is_nmos:
+                vbs_val = sorted((-abs(v) for v in vbs_val))
             else:
-                vbs_val = sorted(vbs_val)
-            print('vbs values: {}'.format(vbs_val))
+                vbs_val = sorted((abs(v) for v in vbs_val))
             swp_info.append(('vbs', dict(type='LIST', values=vbs_val)))
         else:
-            if adjust_vbs_sign:
-                print('adjusting vbs sign')
-                if is_nmos:
-                    vbs_val = -abs(vbs_val)
-                else:
-                    vbs_val = abs(vbs_val)
-            print('vbs value: {:.4g}'.format(vbs_val))
+            if is_nmos:
+                vbs_val = -abs(vbs_val)
+            else:
+                vbs_val = abs(vbs_val)
             self.sim_params['vbs'] = vbs_val
 
         # handle VDS/VGS sign for nmos/pmos
@@ -296,7 +287,6 @@ class MOSSPTB(TestbenchManager):
         )
 
 
-# TODO: needs to be "translated" to BAG3 and verified
 class MOSNoiseTB(TestbenchManager):
     """This class sets up the transistor small-signal noise measurement testbench.
     """
@@ -335,8 +325,6 @@ class MOSNoiseTB(TestbenchManager):
         vgs_num = self.specs['vgs_num']
 
         vgs_start, vgs_stop = self.specs['vgs_range']
-
-        # TODO: is adjust_vbs_sign needed?
 
         swp_info = []
         # Add VGS sweep
