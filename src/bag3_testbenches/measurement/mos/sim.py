@@ -1,6 +1,6 @@
 """This package contains measurement class for transistors."""
 
-from typing import TYPE_CHECKING, Optional, Tuple, Dict, Any, List, Mapping, Sequence, Union, Type, cast
+from typing import Optional, Tuple, Dict, Any, List, Mapping, Sequence, Union, Type, cast
 
 import math
 from pathlib import Path
@@ -58,7 +58,7 @@ class MOSIdTB(TestbenchManager):
 
     @classmethod
     def get_vgs_range(cls, data: SimData, ibias_min_seg: float, ibias_max_seg: float, vgs_resolution: float,
-                      seg: int, is_nmos: bool, **kwargs: Dict[str, Any]) -> Dict[str, Any]:
+                      seg: int, is_nmos: bool, **kwargs: Dict[str, Any]) -> Tuple[float, float]:
         # invert NMOS ibias sign
         ibias_sgn = -1.0 if is_nmos else 1.0
 
@@ -130,9 +130,8 @@ class MOSSPTB(TestbenchManager):
         vgs_num = self.specs['vgs_num']
         vgs_start, vgs_stop = self.specs['vgs_range']
 
-        swp_info = []
         # Add VGS sweep
-        swp_info.append(('vgs', dict(type='LINEAR', start=vgs_start, stop=vgs_stop, num=vgs_num)))
+        swp_info = [('vgs', dict(type='LINEAR', start=vgs_start, stop=vgs_stop, num=vgs_num))]
 
         # handle VBS sign and set parameters.
         if isinstance(vbs_val, list):
@@ -180,8 +179,7 @@ class MOSSPTB(TestbenchManager):
 
         data.open_analysis(AnalysisType.SP)
 
-        data_dict = data._cur_ana._data
-        ss_dict = cls.mos_y_to_ss(data_dict, sp_freq, seg, ibias, cfit_method=cfit_method)
+        ss_dict = cls.mos_y_to_ss(data, sp_freq, seg, ibias, cfit_method=cfit_method)
 
         new_result = {}
         new_shape = list(data.data_shape)
@@ -196,13 +194,13 @@ class MOSSPTB(TestbenchManager):
         for var in swp_vars:
             if var == 'corner':
                 continue
-            new_result[var] = data_dict[var]
+            new_result[var] = data[var]
         new_result['sweep_params'] = sweep_params
 
         return new_result
 
     @classmethod
-    def mos_y_to_ss(cls, sim_data: Dict[str, np.ndarray], char_freq: float, seg: int, ibias: np.ndarray,
+    def mos_y_to_ss(cls, sim_data: SimData, char_freq: float, seg: int, ibias: np.ndarray,
                     cfit_method: str = 'average') -> Dict[str, np.ndarray]:
         """Convert transistor Y parameters to small-signal parameters.
 
@@ -326,9 +324,8 @@ class MOSNoiseTB(TestbenchManager):
 
         vgs_start, vgs_stop = self.specs['vgs_range']
 
-        swp_info = []
         # Add VGS sweep
-        swp_info.append(('vgs', dict(type='LINEAR', start=vgs_start, stop=vgs_stop, num=vgs_num)))
+        swp_info = [('vgs', dict(type='LINEAR', start=vgs_start, stop=vgs_stop, num=vgs_num))]
 
         # handle VBS sign and set parameters.
         if isinstance(vbs_val, list):
@@ -343,8 +340,6 @@ class MOSNoiseTB(TestbenchManager):
             else:
                 vbs_val = abs(vbs_val)
             self.sim_params['vbs'] = vbs_val
-
-        vgs_vals = np.linspace(vgs_start, vgs_stop, vgs_num + 1)
 
         # handle VDS/VGS sign for nmos/pmos
         if is_nmos:
@@ -364,9 +359,8 @@ class MOSNoiseTB(TestbenchManager):
         return super().pre_setup(sch_params)
 
     @classmethod
-    def get_integrated_noise(cls, data: SimData, ss_data: Dict[str, Any], temp: float, freq_start: float,
-                             freq_stop: float, seg: int, scale: float = 1.0,
-                             **kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    def get_integrated_noise(cls, data: SimData, ss_data: Dict[str, Any], freq_start: float, freq_stop: float, seg: int,
+                             scale: float = 1.0, **kwargs: Dict[str, Any]) -> Dict[str, Any]:
         data.open_analysis(AnalysisType.NOISE)
 
         ss_data_swp_order = ss_data['sweep_params']['gm']
@@ -400,7 +394,17 @@ class MOSNoiseTB(TestbenchManager):
             noise_fun = LinearInterpolator(cur_points, idn[idx, ...], delta_list, extrapolate=True)
             integ_noise_list.append(noise_fun.integrate(fstart_log, fstop_log, axis=-1, logx=True, logy=True, raw=True))
 
-        gamma = np.array(integ_noise_list) / (4.0 * 1.38e-23 * temp * ss_data['gm'] * (freq_stop - freq_start))
+        # get temperatures from sim_envs
+        gm = ss_data['gm']
+        temp = np.ones(gm.shape)
+        for idx, sim_env in enumerate(data.sim_envs):
+            _temp = sim_env.split('_')[1]
+            if _temp[0] == 'm':
+                temp[idx] *= 273 - float(_temp[1:])
+            else:
+                temp[idx] *= 273 + float(_temp)
+
+        gamma = np.array(integ_noise_list) / (4.0 * 1.38e-23 * temp * gm * (freq_stop - freq_start))
 
         new_result = deepcopy(ss_data)
         new_result['gamma'] = gamma
@@ -412,7 +416,7 @@ class MOSNoiseTB(TestbenchManager):
 class MOSCharSS(MeasurementManager):
     """This class measures small signal parameters of a transistor using Y parameter fitting.
 
-    This measurement is perform as follows:
+    This measurement is performed as follows:
 
     1. First, given a user specified current density range, we perform a DC current measurement
        to find the range of vgs needed across corners to cover that range.
@@ -439,6 +443,8 @@ class MOSCharSS(MeasurementManager):
     """
 
     def __init__(self, *args, **kwargs):
+        self._sim_envs = []
+        self._run_tbm = {}
         super().__init__(*args, **kwargs)
         self.tbm_cls_map = dict(
             ibias=MOSIdTB,
@@ -595,10 +601,9 @@ class MOSCharSS(MeasurementManager):
 
             elif tbm_name == 'noise':
                 ss_params = load_sim_file(ss_fname)
-                temp = 273 + float(tbm.sim_envs[0].split('_')[1])
                 # TODO: should frequency range of gamma calculation be different from
                 # the frequency range of the noise simulation?
-                ss_params = MOSNoiseTB.get_integrated_noise(data, ss_params, temp=temp, **self.get_tbm_specs(tbm_name))
+                ss_params = MOSNoiseTB.get_integrated_noise(data, ss_params, **self.get_tbm_specs(tbm_name))
                 save_sim_results(ss_params, ss_fname)
 
                 res['ss_file'] = ss_fname
@@ -634,7 +639,7 @@ class MOSCharSS(MeasurementManager):
             sim_dir = Path(sim_dir)
         if sim_dir.is_absolute():
             try:
-                work_dir = sim_dir.relative_to(sim_db._sim._dir_path)
+                work_dir = sim_dir.relative_to(sim_db._sim.dir_path)
             except ValueError:
                 return None
             else:
@@ -643,7 +648,8 @@ class MOSCharSS(MeasurementManager):
         else:
             return sim_dir
 
-    async def _run_sim(self, tbm_name: str, sim_dir: Path, sim_db: SimulationDB, dut: Optional[DesignInstance],
+    @staticmethod
+    async def _run_sim(tbm_name: str, sim_dir: Path, sim_db: SimulationDB, dut: Optional[DesignInstance],
                        tbm: TestbenchManager) -> SimData:
         """
         Runs a simulation.
@@ -666,7 +672,8 @@ class MOSCharSS(MeasurementManager):
         output : SimData
             the simulation data.
         """
-        sim_results = await sim_db.async_simulate_tbm_obj(tbm_name, sim_dir / tbm_name / tbm.sim_envs[0], dut, tbm, tb_params={})
+        sim_results = await sim_db.async_simulate_tbm_obj(tbm_name, sim_dir / tbm_name / tbm.sim_envs[0], dut, tbm,
+                                                          tb_params={})
         return sim_results.data
 
     def combine_data_across_corners(self, data_list: List[SimData]) -> SimData:
@@ -688,7 +695,8 @@ class MOSCharSS(MeasurementManager):
         ndata = len(data_list)
         num_sim_envs = len(self._sim_envs)
         if ndata != num_sim_envs:
-            raise ValueError(f"data_list (length {ndata}) must have the same length as sim_envs (length {num_sim_envs})")
+            raise ValueError(f"data_list (length {ndata}) must have the same length as sim_envs "
+                             f"(length {num_sim_envs})")
 
         data0 = data_list[0]
         new_data = {}
