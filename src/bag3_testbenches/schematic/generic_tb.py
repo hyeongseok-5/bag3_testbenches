@@ -184,7 +184,8 @@ class bag3_testbenches__generic_tb(Module):
             for idx, harness_config in enumerate(harnesses_list):
                 # first array previous DUT / harness to avoid overlap of symbols
                 name = f'XHAR{idx}'
-                self.array_instance(prev_name, ['X0', name])
+                _w = self.instances[prev_name].width
+                self.array_instance(prev_name, ['X0', name], dx=_w + 60)
                 if prev_name == 'XDUT' and no_dut:
                     self.remove_instance('X0')
                 else:
