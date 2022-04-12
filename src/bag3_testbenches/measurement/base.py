@@ -325,8 +325,10 @@ class GenericTB(TestbenchManager, abc.ABC):
                 # user specify another pin to short to
                 val_list = get_cdba_name_bits(pin_val)
                 if len(val_list) != len(bit_list):
-                    raise ValueError(
-                        f'Cannot connect pin {pin_name} to {pin_val}, length mismatch.')
+                    if len(val_list) == 1:
+                        val_list *= nlen
+                    else:
+                        raise ValueError(f'Cannot connect pin {pin_name} to {pin_val}, length mismatch.')
 
                 for bit_name, net_name in zip(bit_list, val_list):
                     pos_bits, neg_bits = self.get_diff_groups(bit_name)
