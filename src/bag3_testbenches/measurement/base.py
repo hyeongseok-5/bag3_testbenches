@@ -258,18 +258,19 @@ class GenericTB(TestbenchManager, abc.ABC):
         pwr_domain: Mapping[str, Tuple[str, str]] = self.specs['pwr_domain']
 
         for params in load_list:
+            pin = ''
+            conns = {}
+            pos_pins, neg_pins = [], []
+            dev_type: str = params['type']
             if 'pin' in params:
                 pin: str = params['pin']
                 pos_pins, neg_pins = self.get_diff_groups(pin)
-                conns = {}
             elif 'conns' in params:
                 conns: Mapping[str, str] = params['conns']
-                pin = ''
-                pos_pins, neg_pins = [], []
-            else:
+            elif dev_type != 'mind':
+                # mind (mutual inductor) has no terminals, so "pin" or "conns" are not needed.
                 raise ValueError('Specify either "pin" or "conns".')
             value: Union[float, str] = params['value']
-            dev_type: str = params['type']
             name: Optional[str] = params.get('name')
             if 'nin' in params:
                 if not pin:

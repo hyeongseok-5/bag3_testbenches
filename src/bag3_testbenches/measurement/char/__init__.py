@@ -118,18 +118,20 @@ class CharACMeas(MeasurementManager):
 
         passive_type: str = self.specs['passive_type']
         if passive_type == 'ind':
-            sp_file = Path(self.specs['sp_file'])
-            ind_sp = f'{sp_file.stem}.s1p'
+            ind_specs: Mapping[str, Any] = self.specs['ind_specs']
+            sp_file = Path(ind_specs['sp_file'])
+            ind_sp = sp_file.name
             sim_dir.mkdir(parents=True, exist_ok=True)
             copy(sp_file, sim_dir / ind_sp)
+            tb_ind_specs = {'ind_sp': ind_sp, 'plus': ind_specs['plus'], 'minus': ind_specs['minus']}
         else:
-            ind_sp = ''
+            tb_ind_specs = None
 
         tb_params = dict(
             extracted=self.specs['tbm_specs'].get('extracted', True),
             sup_conns=sup_conns,
             passive_type=passive_type,
-            ind_sp=ind_sp,
+            ind_specs=tb_ind_specs,
         )
         sim_results = await sim_db.async_simulate_tbm_obj(tbm_name, sim_dir, dut, tbm,
                                                           tb_params=tb_params)
