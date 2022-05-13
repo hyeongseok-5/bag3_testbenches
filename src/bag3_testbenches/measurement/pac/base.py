@@ -29,55 +29,45 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from typing import Any, Optional, Mapping, List, Union, Dict
+from typing import Any, Optional, Mapping, List, Union, Tuple
 
 from bag.simulation.data import SimNetlistInfo, netlist_info_from_dict
 
-from ..base import GenericTB
+from ..pss.base import PSSTB
 
 
-class PSSTB(GenericTB):
-    """This class provide utility methods useful for all PSS simulations.
+class PACTB(PSSTB):
+    """This class provide utility methods useful for all PAC simulations.
 
     Notes
     -----
-    specification dictionary has the following optional entries in addition to the default ones:
+    specification dictionary has the following entries in addition to the default ones:
 
-    p_port/n_port : str/str
-        p_port and n_port in autonomous circuit (e.g. free-running VCO)
-    fund: Union[float, str]
-        Steady state analysis fundamental frequency (or its estimate for autonomous circuits).
-    period : Union[float, str]
-        Steady state analysis period (or its estimate for autonomous circuits).
-    autofund: bool
-        If the value is yes, the program ignores period/fund value and calculates
-        the fundamental frequency automatically from source information.
-    t_step : Optional[float]
-        Optional.  The strobe period.  Defaults to no strobing.
-    pss_options : Mapping[str, Any]
-        PSS simulation options dictionary. (spectre -h pss to see available parameters)
+    sweep_options : Mapping[str, Any]
+        Dictionary with following entries :
+            type : str
+                type of sweep (LINEAR / LOG)
+            start : Union[str, float]
+                initial value of sweep_var
+            stop : Union[str, float]
+                final value of sweep_var
+            num : int
+                number of sweep data points
+    pac_options : Optional[Mapping[str, Any]]
+        Optional.  PAC simulation options dictionary. (spectre -h pac to see available parameters)
     """
-
-    def get_pss_sim_setup(self) -> Dict[str, Any]:
-        specs = self.specs
-        t_step: Optional[float] = specs.get('t_step', None)
-        pss_options: Mapping[str, Any] = specs.get('pss_options', {})
-
-        pss_dict = dict(type='PSS',
-                        options=pss_options,
-                        save_outputs=self.save_outputs,
-                        )
-        if t_step is not None:
-            pss_dict['strobe'] = t_step
-
-        for optional_key in ['p_port', 'n_port', 'period', 'fund', 'autofund']:
-            if optional_key in specs:
-                pss_dict[optional_key] = specs[optional_key]
-        sim_setup = self.get_netlist_info_dict()
-        sim_setup['analyses'] = [pss_dict]
-        return sim_setup
 
     def get_netlist_info(self) -> SimNetlistInfo:
         sim_setup = self.get_pss_sim_setup()
+        sweep_options: Mapping[str, Any] = self.specs['sweep_options']
+        pac_options: Mapping[str, Any] = self.specs.get('pac_options', {})
+        pac_dict = dict(type='PAC',
+                       param='freq',
+                       sweep=sweep_options,
+                       options=pac_options,
+                       save_outputs=self.save_outputs,
+                       )
+
+        sim_setup['analyses'].append(pac_dict)
         return netlist_info_from_dict(sim_setup)
 
