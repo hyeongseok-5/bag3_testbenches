@@ -226,6 +226,7 @@ class OptDesigner(DesignerBase, abc.ABC):
         self._sim_swp_params = None
         self._swp_params = None
         self._swp_shape = None
+        self._em_sim = None
         super().__init__(root_dir, sim_db, dsn_specs)
 
     @classmethod
@@ -259,6 +260,8 @@ class OptDesigner(DesignerBase, abc.ABC):
         base_gen_specs = self._parse_params(self._dsn_specs['gen_specs'])
 
         self._dut_class, self._is_lay = self.get_dut_class_info(base_gen_specs)
+
+        self._em_sim = 'em_params' in self._dsn_specs
 
         self.base_gen_specs = base_gen_specs['params']
 
@@ -465,6 +468,27 @@ class OptDesigner(DesignerBase, abc.ABC):
         """
         return base_gen_specs
 
+    @classmethod
+    @abc.abstractmethod
+    def get_em_dut_gen_specs(cls, base_gen_specs: Param, gen_params: Mapping[str, Any]
+                             ) -> Union[Param, Dict[str, Any]]:
+        """Returns the updated generator specs with some design variables.
+
+        Parameters
+        ----------
+        base_gen_specs : Param
+            The base/default generator specs.
+
+        gen_params : Mapping[str, Any]
+            The design variables.
+
+        Returns
+        -------
+        gen_specs : Union[Param, Dict[str, Any]]
+            The updated generator specs.
+        """
+        return base_gen_specs
+
     def process_meas_results(self, res: Dict[str, Any], params: Dict[str, Any]) -> Dict[str, Any]:
         """Processes and returns measurement results.
         If any particular post-processing needs to be done, this method should be overriden by subclasses.
@@ -641,7 +665,14 @@ class OptDesigner(DesignerBase, abc.ABC):
             dut_gen_params = self.get_dut_gen_specs(self._is_lay, self.base_gen_specs,
                                                     {**self.dsn_fixed_params, **dsn_params})
             dut = await self.async_new_dut(dsn_name, self.dut_class, dut_gen_params,
-                                           export_lay=self._sim_db.extract and self._sim_db._dsn_db._gen_sch)
+                                           export_lay=self._sim_db.extract and self._sim_db.gen_sch_dut)
+            if self._em_sim:
+                em_dut_gen_params = self.get_em_dut_gen_specs(self.base_gen_specs,
+                                                              {**self.dsn_fixed_params, **dsn_params})
+                em_dut, gds_file = await self.async_new_em_dut(dsn_name, self.dut_class, em_dut_gen_params)
+                sp_file = await self.async_gen_nport(em_dut, gds_file, self._dsn_specs['em_params'],
+                                                     self.get_meas_dir(dsn_name))
+                dsn_params['sp_file'] = sp_file
 
             res = await self.verify_design(dut, dsn_params, self.sim_swp_params)
 
