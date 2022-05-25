@@ -149,8 +149,11 @@ def estimate_ind(freq: np.ndarray, zc: np.ndarray) -> Mapping[str, float]:
     """assume res and ind in series; cap in parallel"""
     w = 2 * np.pi * freq
 
-    # find SRF: max freq where zc.imag goes from positive to negative
-    loc1 = np.where(zc.imag > 0)[0][-1]
+    # find SRF: min freq where zc.imag goes from positive to negative
+    vec = (zc.imag >= 0).astype(int)
+    dvec = np.diff(vec)
+    dvec = np.minimum(dvec, 0)
+    loc1 = dvec.nonzero()[0][0]
     # Linearly interpolate between loc and (loc + 1)
     w1, z1 = w[loc1], zc.imag[loc1]
     w2, z2 = w[loc1 + 1], zc.imag[loc1 + 1]
