@@ -446,8 +446,8 @@ class OptDesigner(DesignerBase, abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def get_dut_gen_specs(cls, is_lay: bool, base_gen_specs: Param,
-                          gen_params: Mapping[str, Any]) -> Union[Param, Dict[str, Any]]:
+    def get_dut_gen_specs(cls, is_lay: bool, base_gen_specs: Param, dsn_params: Mapping[str, Any]) \
+            -> Union[Param, Dict[str, Any]]:
         """Returns the updated generator specs with some design variables.
 
         Parameters
@@ -458,7 +458,7 @@ class OptDesigner(DesignerBase, abc.ABC):
         base_gen_specs : Param
             The base/default generator specs.
 
-        gen_params : Mapping[str, Any]
+        dsn_params : Mapping[str, Any]
             The design variables.
 
         Returns
