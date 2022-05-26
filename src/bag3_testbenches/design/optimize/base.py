@@ -445,7 +445,6 @@ class OptDesigner(DesignerBase, abc.ABC):
         raise NotImplementedError
 
     @classmethod
-    @abc.abstractmethod
     def get_dut_gen_specs(cls, is_lay: bool, base_gen_specs: Param, dsn_params: Mapping[str, Any]) \
             -> Union[Param, Dict[str, Any]]:
         """Returns the updated generator specs with some design variables.
@@ -469,7 +468,6 @@ class OptDesigner(DesignerBase, abc.ABC):
         return base_gen_specs
 
     @classmethod
-    @abc.abstractmethod
     def get_em_dut_gen_specs(cls, base_gen_specs: Param, gen_params: Mapping[str, Any]
                              ) -> Union[Param, Dict[str, Any]]:
         """Returns the updated generator specs with some design variables.
@@ -546,7 +544,7 @@ class OptDesigner(DesignerBase, abc.ABC):
             else:
                 raise ValueError('Unsupported parameter type: %s' % (type(val)))
 
-        return name
+        return name.replace('.', 'p')
 
     def get_results_fname(self, params: Dict[str, Any]) -> Path:
         """Returns the path to the design's measured results.
@@ -664,14 +662,16 @@ class OptDesigner(DesignerBase, abc.ABC):
             dsn_params = await self.pre_setup(dsn_params)
             dut_gen_params = self.get_dut_gen_specs(self._is_lay, self.base_gen_specs,
                                                     {**self.dsn_fixed_params, **dsn_params})
-            dut = await self.async_new_dut(dsn_name, self.dut_class, dut_gen_params,
+            ext_dut_name = f'{dsn_name}_ext' if self._em_sim else dsn_name
+            dut = await self.async_new_dut(ext_dut_name, self.dut_class, dut_gen_params,
                                            export_lay=self._sim_db.extract and self._sim_db.gen_sch_dut)
             if self._em_sim:
                 em_dut_gen_params = self.get_em_dut_gen_specs(self.base_gen_specs,
                                                               {**self.dsn_fixed_params, **dsn_params})
-                em_dut, gds_file = await self.async_new_em_dut(dsn_name, self.dut_class, em_dut_gen_params)
-                sp_file = await self.async_gen_nport(em_dut, gds_file, self._dsn_specs['em_params'],
-                                                     self.get_meas_dir(dsn_name))
+                em_dut, gds_file, gds_cached = await self.async_new_em_dut(f'{dsn_name}_em', self.dut_class,
+                                                                           em_dut_gen_params, export_lay=True)
+                sp_file = await self.async_gen_nport(em_dut, gds_file, gds_cached, self._dsn_specs['em_params'],
+                                                     gds_file.parent)
                 dsn_params['sp_file'] = sp_file
 
             res = await self.verify_design(dut, dsn_params, self.sim_swp_params)
