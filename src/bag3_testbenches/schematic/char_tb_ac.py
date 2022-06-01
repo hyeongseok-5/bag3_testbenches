@@ -107,15 +107,15 @@ class bag3_testbenches__char_tb_ac(Module):
                 self.remove_instance('Cpm')
                 if passive_type == 'ind':
                     self.remove_instance('XDUT')
-                    ind_sp: str = ind_specs['ind_sp']
-                    _n = int(ind_sp[-2])
+                    ind_sp: Path = Path(ind_specs['ind_sp'])
+                    _n = int(ind_sp.suffix[2:-1])
                     conns = {}
                     for idx in range(_n):
                         conns[f't{idx + 1}'] = f't{idx + 1}'
                         conns[f'b{idx + 1}'] = 'common'
                     conns[f't{ind_specs["plus"]}'] = 'plus'
                     conns[f't{ind_specs["minus"]}'] = 'minus'
-                    self.design_sources_and_loads([{'conns': conns, 'type': f'n{_n}port', 'value': ind_sp}], 'Cc')
+                    self.design_sources_and_loads([{'conns': conns, 'type': f'n{_n}port', 'value': str(ind_sp)}], 'Cc')
                 else:
                     self.remove_instance('Cc')
                     self.replace_instance_master('XDUT', dut_lib, dut_cell, keep_connections=True, static=True)
