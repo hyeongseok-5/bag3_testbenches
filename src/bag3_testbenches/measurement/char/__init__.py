@@ -166,7 +166,7 @@ def estimate_ind(freq: np.ndarray, zc: np.ndarray) -> Mapping[str, float]:
     ind = _fit[0]
 
     cap = 1 / (w0 * w0 * ind)
-    ans = dict(ind=ind, res=res, cap=cap)
+    ans = dict(ind=ind, res=res, cap=cap, srf=w0 / (2 * np.pi))
 
     # --- Debug plots --- #
     # plt.semilogx(freq[:idx0], zc.imag[:idx0], label='Measured')
