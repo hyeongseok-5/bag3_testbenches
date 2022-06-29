@@ -98,7 +98,8 @@ class bag3_testbenches__char_tb_ac(Module):
             self.remove_instance('Cpp')
             self.remove_instance('Cpm')
             self.replace_instance_master('XDUT', dut_lib, dut_cell, keep_connections=True, static=True)
-            self.reconnect_instance('XDUT', [('plus', 'plus'), ('minus', 'minus')])
+            self.reconnect_instance('XDUT', [('plus', 'plus'), ('minus', 'minus'),
+                                             ('PLUS', 'plus'), ('MINUS', 'minus')])
         else:
             if passive_type == 'cap':
                 self.remove_instance('XDUT')
@@ -119,7 +120,8 @@ class bag3_testbenches__char_tb_ac(Module):
                 else:
                     self.remove_instance('Cc')
                     self.replace_instance_master('XDUT', dut_lib, dut_cell, keep_connections=True, static=True)
-                    self.reconnect_instance('XDUT', [('plus', 'plus'), ('minus', 'minus')])
+                    self.reconnect_instance('XDUT', [('plus', 'plus'), ('minus', 'minus'),
+                                                     ('PLUS', 'plus'), ('MINUS', 'minus')])
             else:
                 raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res".')
 

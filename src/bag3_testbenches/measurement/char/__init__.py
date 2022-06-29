@@ -222,6 +222,7 @@ def compute_passives(meas_results: Sequence[Mapping[str, Any]], passive_type: st
         plt.xlabel('Frequency (in Hz)')
         plt.ylabel('Value')
         plt.legend()
+        plt.grid()
         plt.show()
 
     results = dict(
@@ -246,6 +247,7 @@ def compute_passives(meas_results: Sequence[Mapping[str, Any]], passive_type: st
         plt.xlabel('Frequency (in Hz)')
         plt.ylabel('Value')
         plt.legend()
+        plt.grid()
         plt.show()
     else:
         raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res" or "esd" or "ind".')
