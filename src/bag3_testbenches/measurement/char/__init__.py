@@ -233,7 +233,19 @@ def compute_passives(meas_results: Sequence[Mapping[str, Any]], passive_type: st
         results['cc'] = estimate_cap(freq0, zc)
         results['r_series'] = np.mean(zc).real
     elif passive_type == 'res':
-        results['res'] = np.mean(zc).real
+        results['c_parallel'], results['res'] = estimate_esd(freq0, zc)
+
+        warr = 2 * np.pi * freq0
+        z_meas = 1 / (1 / zc + 1 / (zpp + zpm))
+        cp_est = 1 / (1 / results['cpp'] + 1 / results['cpm'])
+        z_est = 1 / (1 / results['res'] + 1j * warr * (results['c_parallel'] + cp_est))
+        plt.semilogx(freq0, np.abs(z_meas), label='Measured')
+        plt.semilogx(freq0, np.abs(z_est), label='Estimated')
+        plt.xlabel('Frequency (in Hz)')
+        plt.ylabel('Value')
+        plt.legend()
+        plt.grid()
+        plt.show()
     elif passive_type == 'esd':
         results['cc'], results['res'] = estimate_esd(freq0, zc)
     elif passive_type == 'ind':
