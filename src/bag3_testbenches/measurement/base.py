@@ -262,6 +262,7 @@ class GenericTB(TestbenchManager, abc.ABC):
             conns = {}
             pos_pins, neg_pins = [], []
             dev_type: str = params['type']
+            dev_lib: str = params.get('lib', 'analogLib')
             if 'pin' in params:
                 pin: str = params['pin']
                 pos_pins, neg_pins = self.get_diff_groups(pin)
@@ -280,16 +281,16 @@ class GenericTB(TestbenchManager, abc.ABC):
 
                 for pin_name, nin_name in zip(chain(pos_pins, neg_pins),
                                               chain(npos_pins, nneg_pins)):
-                    src_load_list.append(dict(type=dev_type, lib='analogLib', value=value,
+                    src_load_list.append(dict(type=dev_type, lib=dev_lib, value=value,
                                               conns=dict(PLUS=pin_name, MINUS=nin_name), name=name))
             else:
                 if pin:
                     gnd_name = self.get_pin_supplies(pin, pwr_domain)[0]
                     for pin_name in chain(pos_pins, neg_pins):
-                        src_load_list.append(dict(type=dev_type, lib='analogLib', value=value,
+                        src_load_list.append(dict(type=dev_type, lib=dev_lib, value=value,
                                                   conns=dict(PLUS=pin_name, MINUS=gnd_name), name=name))
                 else:
-                    src_load_list.append(dict(type=dev_type, lib='analogLib', value=value,
+                    src_load_list.append(dict(type=dev_type, lib=dev_lib, value=value,
                                               conns=conns, name=name))
 
     def get_pin_supply_values(self, pin_name: str, data: SimData) -> Tuple[np.ndarray, np.ndarray]:
