@@ -30,7 +30,7 @@
 
 # -*- coding: utf-8 -*-
 
-from typing import Mapping, Any, Sequence, Tuple, Optional
+from typing import Mapping, Any, Optional
 
 import pkg_resources
 from pathlib import Path
@@ -41,15 +41,15 @@ from bag.util.immutable import Param
 
 
 # noinspection PyPep8Naming
-class bag3_testbenches__char_tb_ac(Module):
-    """Module for library bag3_testbenches cell char_tb_ac.
+class bag3_testbenches__char_tb_sp(Module):
+    """Module for library bag3_testbenches cell char_tb_sp.
 
     Fill in high level description here.
     """
 
     yaml_file = pkg_resources.resource_filename(__name__,
                                                 str(Path('netlist_info',
-                                                         'char_tb_ac.yaml')))
+                                                         'char_tb_sp.yaml')))
 
     def __init__(self, database: ModuleDB, params: Param, **kwargs: Any) -> None:
         Module.__init__(self, self.yaml_file, database, params, **kwargs)
@@ -65,19 +65,22 @@ class bag3_testbenches__char_tb_ac(Module):
         """
         return dict(
             extracted='True to run extracted measurements',
-            sup_conns='Connections for AC supply',
             dut_lib='DUT library name',
             dut_cell='DUT cell name',
+            dut_plus='Plus connection for DUT',
+            dut_minus='Minus connection for DUT',
+            dut_vdd='VDD connection for DUT, optional',
+            dut_vss='VSS connection for DUT, optional',
             passive_type='"cap" or "res" or "esd" or "ind"',
             ind_specs='Optional specs for inductor',
         )
 
     @classmethod
     def get_default_param_values(cls) -> Mapping[str, Any]:
-        return dict(dut_lib='', dut_cell='', extracted=True, ind_specs=None)
+        return dict(dut_lib='', dut_cell='', dut_vdd='VDD', dut_vss='VSS', extracted=True, ind_specs=None)
 
-    def design(self, extracted: bool, sup_conns: Sequence[Tuple[str, str]],
-               dut_lib: str, dut_cell: str, passive_type: str, ind_specs: Optional[Mapping[str, Any]]) -> None:
+    def design(self, extracted: bool, dut_lib: str, dut_cell: str, dut_plus: str, dut_minus: str, dut_vdd: str,
+               dut_vss: str, passive_type: str, ind_specs: Optional[Mapping[str, Any]]) -> None:
         """To be overridden by subclasses to design this module.
 
         This method should fill in values for all parameters in
@@ -98,8 +101,8 @@ class bag3_testbenches__char_tb_ac(Module):
             self.remove_instance('Cpp')
             self.remove_instance('Cpm')
             self.replace_instance_master('XDUT', dut_lib, dut_cell, keep_connections=True, static=True)
-            self.reconnect_instance('XDUT', [('plus', 'plus'), ('minus', 'minus'),
-                                             ('PLUS', 'plus'), ('MINUS', 'minus')])
+            self.reconnect_instance('XDUT', [(dut_vdd, 'VDD'), (dut_vss, 'VSS'),
+                                             (dut_plus, 'plus'), (dut_minus, 'minus')])
         else:
             if passive_type == 'cap':
                 self.remove_instance('XDUT')
@@ -120,11 +123,10 @@ class bag3_testbenches__char_tb_ac(Module):
                 else:
                     self.remove_instance('Cc')
                     self.replace_instance_master('XDUT', dut_lib, dut_cell, keep_connections=True, static=True)
-                    self.reconnect_instance('XDUT', [('plus', 'plus'), ('minus', 'minus'),
-                                                     ('PLUS', 'plus'), ('MINUS', 'minus')])
+                    self.reconnect_instance('XDUT', [(dut_vdd, 'VDD'), (dut_vss, 'VSS'),
+                                                     (dut_plus, 'plus'), (dut_minus, 'minus')])
             else:
                 raise ValueError(f'Unknown passive_type={passive_type}. Use "cap" or "res".')
 
-        self.reconnect_instance('IAC', sup_conns)
-        if passive_type == 'cap' or passive_type == 'res':
+        if passive_type == 'cap' or passive_type == 'res' or passive_type == 'ind':
             self.remove_instance('IBIAS')

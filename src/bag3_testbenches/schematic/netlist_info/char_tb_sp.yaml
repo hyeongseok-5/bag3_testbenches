@@ -1,10 +1,10 @@
 lib_name: bag3_testbenches
-cell_name: char_tb_ac
+cell_name: char_tb_sp
 view_name: schematic
 bbox:
   - -360
-  - -260
-  - 514
+  - -410
+  - 598
   - 420
 terminals:
   VDD:
@@ -244,62 +244,6 @@ shapes:
         -
           - -80
           - -100
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: plus
-      points:
-        -
-          - 140
-          - -130
-        -
-          - 140
-          - -90
-  -
-    - 7
-    - layer: 228
-      purpose: 237
-      net: plus
-      origin:
-        - 133
-        - -126
-      alignment: 2
-      orient: R90
-      font: 5
-      height: 10
-      overbar: false
-      visible: true
-      drafting: true
-      text: plus
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: minus
-      points:
-        -
-          - 140
-          - -230
-        -
-          - 140
-          - -190
-  -
-    - 7
-    - layer: 228
-      purpose: 237
-      net: minus
-      origin:
-        - 133
-        - -194
-      alignment: 8
-      orient: R90
-      font: 5
-      height: 10
-      overbar: false
-      visible: true
-      drafting: true
-      text: minus
   -
     - 5
     - layer: 228
@@ -627,7 +571,7 @@ shapes:
       net: minus
       origin:
         - 43
-        - -126
+        - -136
       alignment: 2
       orient: R90
       font: 5
@@ -636,7 +580,205 @@ shapes:
       visible: true
       drafting: true
       text: minus
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: gnd!
+      points:
+        -
+          - 150
+          - -370
+        -
+          - 150
+          - -350
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: vplus
+      points:
+        -
+          - 150
+          - -270
+        -
+          - 190
+          - -270
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: vplus
+      origin:
+        - 170
+        - -263
+      alignment: 5
+      orient: R0
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: vplus
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: plus
+      points:
+        -
+          - 250
+          - -270
+        -
+          - 270
+          - -270
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: plus
+      origin:
+        - 270
+        - -263
+      alignment: 5
+      orient: R0
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: plus
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: plus
+      points:
+        -
+          - 270
+          - -290
+        -
+          - 270
+          - -270
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: gnd!
+      points:
+        -
+          - 370
+          - -370
+        -
+          - 370
+          - -350
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: vminus
+      points:
+        -
+          - 370
+          - -270
+        -
+          - 410
+          - -270
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: vminus
+      origin:
+        - 390
+        - -263
+      alignment: 5
+      orient: R0
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: vminus
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: minus
+      points:
+        -
+          - 470
+          - -270
+        -
+          - 490
+          - -270
+  -
+    - 7
+    - layer: 228
+      purpose: 237
+      net: minus
+      origin:
+        - 490
+        - -263
+      alignment: 5
+      orient: R0
+      font: 5
+      height: 10
+      overbar: false
+      visible: true
+      drafting: true
+      text: minus
+  -
+    - 5
+    - layer: 228
+      purpose: 4294967295
+      net: minus
+      points:
+        -
+          - 490
+          - -290
+        -
+          - 490
+          - -270
 instances:
+  CM:
+    lib_name: analogLib
+    cell_name: dcblock
+    view_name: symbol
+    xform:
+      - 410
+      - -270
+      - R0
+    bbox:
+      - 285
+      - -293
+      - 598
+      - -176
+    connections:
+      MINUS: minus
+      PLUS: vminus
+    params:
+      {}
+    is_primitive: true
+  CP:
+    lib_name: analogLib
+    cell_name: dcblock
+    view_name: symbol
+    xform:
+      - 190
+      - -270
+      - R0
+    bbox:
+      - 65
+      - -293
+      - 378
+      - -176
+    connections:
+      MINUS: plus
+      PLUS: vplus
+    params:
+      {}
+    is_primitive: true
   Cc:
     lib_name: analogLib
     cell_name: cap
@@ -700,26 +842,41 @@ instances:
         - 3
         - cpp
     is_primitive: true
-  IAC:
+  I0:
     lib_name: analogLib
-    cell_name: idc
+    cell_name: gnd
     view_name: symbol
     xform:
-      - 140
-      - -130
+      - 150
+      - -370
       - R0
     bbox:
-      - 23
-      - -194
-      - 234
-      - -126
+      - 140
+      - -410
+      - 224
+      - -366
     connections:
-      MINUS: minus
-      PLUS: plus
+      gnd!: gnd!
     params:
-      acm:
-        - 3
-        - 1
+      {}
+    is_primitive: true
+  I1:
+    lib_name: analogLib
+    cell_name: gnd
+    view_name: symbol
+    xform:
+      - 370
+      - -370
+      - R0
+    bbox:
+      - 360
+      - -410
+      - 444
+      - -366
+    connections:
+      gnd!: gnd!
+    params:
+      {}
     is_primitive: true
   IBIAS:
     lib_name: analogLib
@@ -741,6 +898,60 @@ instances:
       idc:
         - 3
         - idc
+    is_primitive: true
+  PORTM:
+    lib_name: analogLib
+    cell_name: port
+    view_name: symbol
+    xform:
+      - 370
+      - -270
+      - R0
+    bbox:
+      - 253
+      - -357
+      - 464
+      - -265
+    connections:
+      MINUS: gnd!
+      PLUS: vminus
+    params:
+      filenums:
+        - 3
+        - none
+      pm:
+        - 3
+        - Normal
+      vdc:
+        - 3
+        - 0
+    is_primitive: true
+  PORTP:
+    lib_name: analogLib
+    cell_name: port
+    view_name: symbol
+    xform:
+      - 150
+      - -270
+      - R0
+    bbox:
+      - 33
+      - -357
+      - 244
+      - -265
+    connections:
+      MINUS: gnd!
+      PLUS: vplus
+    params:
+      filenums:
+        - 3
+        - none
+      pm:
+        - 3
+        - Normal
+      vdc:
+        - 3
+        - 0
     is_primitive: true
   VVDD:
     lib_name: analogLib
@@ -844,13 +1055,13 @@ instances:
 props:
   connectivityLastUpdated:
     - 0
-    - 2524
+    - 2859
   instance#:
     - 0
     - 3
   lastSchematicExtraction:
     - 4
-    - time_val: 1623563106
+    - time_val: 1663118549
   net#:
     - 0
     - 2
@@ -859,7 +1070,7 @@ props:
     - 4
   schGeometryLastUpdated:
     - 0
-    - 2524
+    - 2859
   schGeometryVersion:
     - 3
     - sch.ds.gm.1.4
@@ -869,10 +1080,10 @@ props:
 app_defs:
   _dbLastSavedCounter:
     - 0
-    - 2524
+    - 2859
   _dbvCvTimeStamp:
     - 0
-    - 2524
+    - 2859
   cdbRevision:
     - 0
     - 227612

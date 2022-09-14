@@ -42,23 +42,25 @@ from bag.design.module import Module
 from bag.concurrent.util import GatherHelper
 from bag.math import float_to_si_string
 
-from ...schematic.char_tb_ac import bag3_testbenches__char_tb_ac
+from ...schematic.char_tb_sp import bag3_testbenches__char_tb_sp
 
 
-class CharACTB(TestbenchManager):
+class CharSPTB(TestbenchManager):
     @classmethod
     def get_schematic_class(cls) -> Type[Module]:
-        return bag3_testbenches__char_tb_ac
+        return bag3_testbenches__char_tb_sp
 
     def get_netlist_info(self) -> SimNetlistInfo:
         sweep_var: str = self.specs.get('sweep_var', 'freq')
         sweep_options: Mapping[str, Any] = self.specs['sweep_options']
-        ac_options: Mapping[str, Any] = self.specs.get('ac_options', {})
+        sp_options: Mapping[str, Any] = self.specs.get('sp_options', {})
         save_outputs: Sequence[str] = self.specs.get('save_outputs', ['plus', 'minus'])
-        ac_dict = dict(type='AC',
+        ac_dict = dict(type='SP',
                        param=sweep_var,
                        sweep=sweep_options,
-                       options=ac_options,
+                       param_type='Y',
+                       ports=['PORTP', 'PORTM'],
+                       options=sp_options,
                        save_outputs=save_outputs,
                        )
 
@@ -67,30 +69,34 @@ class CharACTB(TestbenchManager):
         return netlist_info_from_dict(sim_setup)
 
 
-class CharACMeas(MeasurementManager):
-    def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo):
+class CharSPMeas(MeasurementManager):
+    def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo,
+                     harnesses: Optional[Sequence[DesignInstance]] = None
+                     ) -> Tuple[Union[Tuple[TestbenchManager, Mapping[str, Any]],
+                                      MeasurementManager], bool]:
         raise NotImplementedError
 
-    def initialize(self, sim_db: SimulationDB, dut: DesignInstance):
+    def initialize(self, sim_db: SimulationDB, dut: DesignInstance,
+                   harnesses: Optional[Sequence[DesignInstance]] = None) -> Tuple[bool, MeasInfo]:
         raise NotImplementedError
 
     def process_output(self, cur_info: MeasInfo, sim_results: Union[SimResults, MeasureResult]):
         raise NotImplementedError
 
     async def async_measure_performance(self, name: str, sim_dir: Path, sim_db: SimulationDB,
-                                        dut: Optional[DesignInstance]) -> Mapping[int, Mapping[str, Any]]:
+                                        dut: Optional[DesignInstance],
+                                        harnesses: Optional[Sequence[DesignInstance]] = None
+                                        ) -> Mapping[int, Mapping[str, Any]]:
         helper = GatherHelper()
         ibias_list = self.specs.get('ibias_list', [0])
         for ibias in ibias_list:
-            for idx in range(2):
-                helper.append(self.async_meas_case(name, sim_dir, sim_db, dut, idx, ibias))
+            helper.append(self.async_meas_case(name, sim_dir, sim_db, dut, ibias))
 
         meas_results = await helper.gather_err()
         passive_type: str = self.specs['passive_type']
         ans = {}
         for idx, ibias in enumerate(ibias_list):
-            midx = idx * 2
-            _results = meas_results[midx:(midx + 2)]
+            _results = meas_results[idx]
             _ans = compute_passives(_results, passive_type)
             ans[idx] = dict(
                 **_ans,
@@ -99,21 +105,14 @@ class CharACMeas(MeasurementManager):
         return ans
 
     async def async_meas_case(self, name: str, sim_dir: Path, sim_db: SimulationDB, dut: Optional[DesignInstance],
-                              case_idx: int, ibias: float = 0.0) -> Mapping[str, Any]:
-        if case_idx == 0:
-            sup_conns = [('PLUS', 'plus'), ('MINUS', 'minus')]
-        elif case_idx == 1:
-            sup_conns = [('PLUS', 'plus'), ('MINUS', 'VSS')]
-        else:
-            raise ValueError(f'Invalid case_idx={case_idx}')
-
+                              ibias: float = 0.0) -> Mapping[str, Any]:
         tbm_specs = dict(
-            **self.specs['tbm_specs']['ac_meas'],
+            **self.specs['tbm_specs']['sp_meas'],
             sim_envs=self.specs['sim_envs'],
         )
         tbm_specs['sim_params']['idc'] = ibias
-        tbm = cast(CharACTB, self.make_tbm(CharACTB, tbm_specs))
-        tbm_name = f'{name}_{case_idx}_{float_to_si_string(ibias)}'
+        tbm = cast(CharSPTB, self.make_tbm(CharSPTB, tbm_specs))
+        tbm_name = f'{name}_{float_to_si_string(ibias)}'
         sim_dir = sim_dir / tbm_name
 
         passive_type: str = self.specs['passive_type']
@@ -129,19 +128,23 @@ class CharACMeas(MeasurementManager):
 
         tb_params = dict(
             extracted=self.specs['tbm_specs'].get('extracted', True),
-            sup_conns=sup_conns,
+            dut_plus=self.specs['tbm_specs']['dut_plus'],
+            dut_minus=self.specs['tbm_specs']['dut_minus'],
+            dut_vdd=self.specs['tbm_specs'].get('dut_vdd', 'VDD'),
+            dut_vss=self.specs['tbm_specs'].get('dut_vss', 'VSS'),
             passive_type=passive_type,
             ind_specs=tb_ind_specs,
         )
         sim_results = await sim_db.async_simulate_tbm_obj(tbm_name, sim_dir, dut, tbm,
                                                           tb_params=tb_params)
         data = sim_results.data
-        return dict(freq=data['freq'], plus=np.squeeze(data['plus']), minus=np.squeeze(data['minus']))
+        return dict(freq=data['freq'], y11=np.squeeze(data['y11']), y12=np.squeeze(data['y12']),
+                    y21=np.squeeze(data['y21']), y22=np.squeeze(data['y22']))
 
 
-def estimate_cap(freq: np.ndarray, zc: np.ndarray) -> float:
-    """assume zc = 1 / jwC"""
-    fit = np.polyfit(2 * np.pi * freq, - 1 / np.imag(zc), 1)
+def estimate_cap(freq: np.ndarray, yc: np.ndarray) -> float:
+    """assume yc = jwC"""
+    fit = np.polyfit(2 * np.pi * freq, np.imag(yc), 1)
     return fit[0]
 
 
@@ -179,83 +182,68 @@ def estimate_ind(freq: np.ndarray, zc: np.ndarray) -> Mapping[str, float]:
     return ans
 
 
-def estimate_esd(freq: np.ndarray, zc: np.ndarray) -> Tuple[float, float]:
-    """assume zc = R / (1 + jwCR); returns C, R"""
-    yc = 1 / zc  # yc = (1/R) + jwC
+def estimate_esd(freq: np.ndarray, yc: np.ndarray) -> Tuple[float, float]:
+    """assume yc = (1/R) + jwC; returns C, R"""
     fit = np.polyfit(2 * np.pi * freq, np.imag(yc), 1)
     cap: float = fit[0]
     res: float = 1 / np.mean(yc.real)
     return cap, res
 
 
-def compute_passives(meas_results: Sequence[Mapping[str, Any]], passive_type: str) -> Mapping[str, Any]:
-    freq0 = meas_results[0]['freq']
-    freq1 = meas_results[1]['freq']
-    assert np.isclose(freq0, freq1).all()
+def compute_passives(meas_results: Mapping[str, Any], passive_type: str) -> Mapping[str, Any]:
+    freq = meas_results['freq']
 
-    # vm0 = (zc * zpm) / (zc + zpp + zpm)
-    # vp0 = - (zc * zpp) / (zc + zpp + zpm)
-    vm0 = meas_results[0]['minus']
-    vp0 = meas_results[0]['plus']
+    y11 = meas_results['y11']
+    y12 = meas_results['y12']
+    y21 = meas_results['y21']
+    y22 = meas_results['y22']
 
-    # vm1 = - (zpp * zpm) / (zc + zpp + zpm)
-    # vp1 = - ((zc + zpm) * zpp) / (zc + zpp + zpm)
-    vm1 = meas_results[1]['minus']
-    vp1 = meas_results[1]['plus']
-
-    # --- Find zc, zpp, zpm using vm0, vp0, vm1 --- #
-    # - vp0 / vm0 = zpp / zpm = const_a  ==> zpp = const_a * zpm
-    const_a = - vp0 / vm0
-    # vp0 / vm1 = zc / zpm = const_b  ==> zc = const_b * zpm
-    const_b = vp0 / vm1
-
-    # vp0 = - (const_b * const_a * zpm) / (const_b + const_a + 1)
-    zpm = - vp0 * (const_b + const_a + 1) / (const_b * const_a)
-    zpp = const_a * zpm
-    zc = const_b * zpm
-
-    # --- Verify vp1 is consistent --- #
-    vp1_calc = - ((zc + zpm) * zpp) / (zc + zpp + zpm)
-    if not np.isclose(vp1, vp1_calc, rtol=1e-3).all():
-        plt.loglog(freq0, np.abs(vp1), label='measured')
-        plt.loglog(freq0, np.abs(vp1_calc), 'g--', label='calculated')
+    # --- Verify yc = -y12 = -y21 is consistent --- #
+    if not np.isclose(y12, y21, rtol=1e-3).all():
+        plt.loglog(freq, np.abs(y12), label='y12')
+        plt.loglog(freq, np.abs(y21), 'g--', label='y21')
         plt.xlabel('Frequency (in Hz)')
         plt.ylabel('Value')
         plt.legend()
         plt.grid()
         plt.show()
 
+    yc = - (y12 + y21) / 2
+    ypp = y11 + y12
+    ypm = y22 + y21
+
     results = dict(
-        cpp=estimate_cap(freq0, zpp),
-        cpm=estimate_cap(freq0, zpm),
+        cpp=estimate_cap(freq, ypp),
+        cpm=estimate_cap(freq, ypm),
     )
     if passive_type == 'cap':
-        results['cc'] = estimate_cap(freq0, zc)
-        results['r_series'] = np.mean(zc).real
+        results['cc'] = estimate_cap(freq, yc)
+        results['r_series'] = np.mean(1 / yc).real
     elif passive_type == 'res':
-        results['c_parallel'], results['res'] = estimate_esd(freq0, zc)
+        results['c_parallel'], results['res'] = estimate_esd(freq, yc)
 
-        warr = 2 * np.pi * freq0
-        z_meas = 1 / (1 / zc + 1 / (zpp + zpm))
+        warr = 2 * np.pi * freq
+        z_meas = 1 / (yc + (ypp * ypm) / (ypp + ypm))
         cp_est = 1 / (1 / results['cpp'] + 1 / results['cpm'])
         z_est = 1 / (1 / results['res'] + 1j * warr * (results['c_parallel'] + cp_est))
-        plt.semilogx(freq0, np.abs(z_meas), label='Measured')
-        plt.semilogx(freq0, np.abs(z_est), label='Estimated')
+        plt.semilogx(freq, np.abs(z_meas), label='Measured')
+        plt.semilogx(freq, np.abs(z_est), label='Estimated')
         plt.xlabel('Frequency (in Hz)')
         plt.ylabel('Value')
         plt.legend()
         plt.grid()
         plt.show()
     elif passive_type == 'esd':
-        results['cc'], results['res'] = estimate_esd(freq0, zc)
+        results['cc'], results['res'] = estimate_esd(freq, yc)
     elif passive_type == 'ind':
-        ind_values = estimate_ind(freq0, zc)
+        zc = 1 / yc
+        ind_values = estimate_ind(freq, zc)
         results.update(ind_values)
         # --- Debug plots --- #
-        warr = 2 * np.pi * freq0
+        warr = 2 * np.pi * freq
         z_est = 1 / (1 / (ind_values['res'] + 1j * warr * ind_values['ind']) + 1j * warr * ind_values['cap'])
-        plt.semilogx(freq0, zc.imag, label='Measured')
-        plt.semilogx(freq0, z_est.imag, label='Estimated')
+        plt.semilogx(freq, zc.imag, label='Measured')
+        plt.semilogx(freq, z_est.imag, label='Estimated')
         plt.xlabel('Frequency (in Hz)')
         plt.ylabel('Value')
         plt.legend()
