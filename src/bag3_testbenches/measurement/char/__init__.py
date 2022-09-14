@@ -123,13 +123,17 @@ class CharSPMeas(MeasurementManager):
             sim_dir.mkdir(parents=True, exist_ok=True)
             copy(sp_file, sim_dir / ind_sp)
             tb_ind_specs = {'ind_sp': ind_sp, 'plus': ind_specs['plus'], 'minus': ind_specs['minus']}
+            dut_plus = 'plus'
+            dut_minus = 'minus'
         else:
             tb_ind_specs = None
+            dut_plus = self.specs['tbm_specs']['dut_plus']
+            dut_minus = self.specs['tbm_specs']['dut_minus']
 
         tb_params = dict(
             extracted=self.specs['tbm_specs'].get('extracted', True),
-            dut_plus=self.specs['tbm_specs']['dut_plus'],
-            dut_minus=self.specs['tbm_specs']['dut_minus'],
+            dut_plus=dut_plus,
+            dut_minus=dut_minus,
             dut_vdd=self.specs['tbm_specs'].get('dut_vdd', 'VDD'),
             dut_vss=self.specs['tbm_specs'].get('dut_vss', 'VSS'),
             passive_type=passive_type,
