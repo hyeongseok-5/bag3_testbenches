@@ -262,7 +262,7 @@ class OptDesigner(DesignerBase, abc.ABC):
         self._dut_class, self._is_lay = self.get_dut_class_info(base_gen_specs)
 
         em_params = self.dsn_specs.get('em_params', {})
-        self._em_sim = not(em_params is {})
+        self._em_sim = True if em_params else False
 
         self.base_gen_specs = base_gen_specs['params']
 
