@@ -37,6 +37,9 @@ class TranTB(GenericTB):
 
     t_step : Optional[float]
         Optional.  The strobe period.  Defaults to no strobing.
+    t_start : Optional[float]
+        Optional.  The simulation start time. Defaults to 0.
+        If negative and a ramp-up option is selected to compute initial conditions, the ramp-up duration is -t_start.
     tran_options : Mapping[str, Any]
         Optional.  transient simulation options dictionary.
     """
@@ -47,7 +50,7 @@ class TranTB(GenericTB):
         tran_options: Mapping[str, Any] = specs.get('tran_options', {})
 
         tran_dict = dict(type='TRAN',
-                         start=0.0,
+                         start=specs.get('t_start', 0.0),
                          stop='t_sim',
                          options=tran_options,
                          save_outputs=self.save_outputs,
