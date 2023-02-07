@@ -189,6 +189,8 @@ def _get_first_crossings_time_1d(tvec: np.ndarray, yvec: np.ndarray, threshold: 
 
     # quantize waveform values, then detect edge.
     dvec = np.diff((yvec[sidx:eidx] >= threshold).astype(int))
+    if dvec.size == 0:
+        return float('nan')
 
     ans = float('inf')
     if EdgeType.RISE in etype:
