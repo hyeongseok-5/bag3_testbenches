@@ -652,18 +652,6 @@ shapes:
     - 5
     - layer: 228
       purpose: 4294967295
-      net: plus
-      points:
-        -
-          - 270
-          - -290
-        -
-          - 270
-          - -270
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
       net: gnd!
       points:
         -
@@ -728,18 +716,6 @@ shapes:
       visible: true
       drafting: true
       text: minus
-  -
-    - 5
-    - layer: 228
-      purpose: 4294967295
-      net: minus
-      points:
-        -
-          - 490
-          - -290
-        -
-          - 490
-          - -270
 instances:
   CM:
     lib_name: analogLib
@@ -1055,13 +1031,13 @@ instances:
 props:
   connectivityLastUpdated:
     - 0
-    - 2859
+    - 2864
   instance#:
     - 0
     - 3
   lastSchematicExtraction:
     - 4
-    - time_val: 1663118549
+    - time_val: 1675729548
   net#:
     - 0
     - 2
@@ -1070,7 +1046,7 @@ props:
     - 4
   schGeometryLastUpdated:
     - 0
-    - 2859
+    - 2864
   schGeometryVersion:
     - 3
     - sch.ds.gm.1.4
@@ -1080,10 +1056,10 @@ props:
 app_defs:
   _dbLastSavedCounter:
     - 0
-    - 2859
+    - 2864
   _dbvCvTimeStamp:
     - 0
-    - 2859
+    - 2864
   cdbRevision:
     - 0
     - 227612
