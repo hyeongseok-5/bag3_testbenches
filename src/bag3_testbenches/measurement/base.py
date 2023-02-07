@@ -133,6 +133,10 @@ class GenericTB(TestbenchManager, abc.ABC):
     def sup_var_name(cls, sup_pin: str) -> str:
         return f'v_{sup_pin}'
 
+    @classmethod
+    def sup_src_name(cls, sup_pin: str) -> str:
+        return f'VDC_{sup_pin}'
+
     def get_bias_sources(self, sup_values: Mapping[str, Union[float, Mapping[str, float]]],
                          src_list: List[Mapping[str, Any]], src_pins: Set[str]) -> None:
         """Save bias sources and pins into src_list and src_pins.
@@ -150,7 +154,7 @@ class GenericTB(TestbenchManager, abc.ABC):
                 if sup_val != 0:
                     raise ValueError('VSS must be 0 volts.')
             else:
-                src_list.append(dict(type='vdc', lib='analogLib', value=var_name,
+                src_list.append(dict(type='vdc', lib='analogLib', name=self.sup_src_name(sup_pin), value=var_name,
                                      conns=dict(PLUS=sup_pin, MINUS='VSS')))
                 src_pins.add(sup_pin)
             if isinstance(sup_val, float) or isinstance(sup_val, int):
