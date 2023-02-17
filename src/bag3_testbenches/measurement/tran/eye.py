@@ -102,7 +102,7 @@ class EyeAnalysis:
         # Find exact zero crossing between _t0 and _t1.
         # This is the extra delay of the output beyond t_delay of the input.
         t_delay1 = bin_search(sig_li - val_mid, _t0, _t0 + self._t_per, self._t_per / self._strobe) - _t0
-        # To center the eye, the first transistion should be quarter period shifted.
+        # To center the eye, the first transition should be quarter period shifted.
         t_delay2 = t_delay1 - self._eye_per / 4
 
         # fold the signal to form centered eye
