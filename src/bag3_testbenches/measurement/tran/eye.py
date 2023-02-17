@@ -1,34 +1,57 @@
-from typing import Mapping, Any
+from typing import Optional
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+from dataclasses import dataclass, field
 
 from bag.math.interpolate import LinearInterpolator
 
 
+@dataclass
+class EyeResults:
+    width: float
+    height: float
+    pos_w0: int = field(repr=False)     # time index of eye left
+    pos_w1: int = field(repr=False)     # time index of eye right
+    pos_h: int = field(repr=False)      # time index of eye max opening
+    val_mid: float = field(repr=False)  # eye common mode
+    eye_vals: np.ndarray = field(repr=False)    # collapsed waveforms for plotting eye
+    time_eye: np.ndarray = field(repr=False)    # time axis for plotting eye
+
+    def plot(self, ax: Optional[Axes] = None) -> None:
+        if ax:
+            ax.plot(self.time_eye, self.eye_vals.T, 'b')
+            ax.hlines(self.val_mid, self.time_eye[self.pos_w0], self.time_eye[self.pos_w1],
+                      label=f'width={self.width} s', linestyle="--", colors=['r'])
+            ax.vlines(self.time_eye[self.pos_h], self.val_mid - self.height / 2, self.val_mid + self.height / 2,
+                      label=f'height={self.height} V', linestyle=":", colors=['g'])
+            ax.set_xlabel('time (s)')
+            ax.set_ylabel('amplitude (V)')
+            ax.grid()
+            ax.legend(loc='upper right')
+        else:
+            plt.figure()
+            plt.plot(self.time_eye, self.eye_vals.T, 'b')
+            plt.hlines(self.val_mid, self.time_eye[self.pos_w0], self.time_eye[self.pos_w1],
+                       label=f'width={self.width} s', linestyle="--", colors=['r'])
+            plt.vlines(self.time_eye[self.pos_h], self.val_mid - self.height / 2, self.val_mid + self.height / 2,
+                       label=f'height={self.height} V', linestyle=":", colors=['g'])
+            plt.xlabel('time (s)')
+            plt.ylabel('amplitude (V)')
+            plt.grid()
+            plt.legend(loc='upper right')
+            plt.show()
+
+
 class EyeAnalysis:
-    def __init__(self, t_per: float, t_delay: float, strobe: int = 20):
+    def __init__(self, t_per: float, t_delay: float, strobe: int = 100) -> None:
         self._t_per: float = t_per
         self._t_delay: float = t_delay
         self._strobe: int = strobe
         self._eye_per: float = 2 * t_per
         self._time_eye = np.linspace(0, self._eye_per, self._strobe, endpoint=False)
 
-    def _plot_eye(self, eye_vals: np.ndarray, ans: Mapping[str, Any]) -> None:
-        eye_w = ans['width']
-        eye_h = ans['height']
-        plt.figure()
-        plt.plot(self._time_eye, eye_vals.T, 'b')
-        plt.hlines(ans['val_mid'], self._time_eye[ans['pos_w0']], self._time_eye[ans['pos_w1']],
-                   label=f'width={eye_w} s', linestyle="--", colors=['r'])
-        plt.vlines(self._time_eye[ans['pos_h']], ans['val_mid'] - eye_h / 2, ans['val_mid'] + eye_h / 2,
-                   label=f'height={eye_h} V', linestyle=":", colors=['g'])
-        plt.xlabel('time (s)')
-        plt.ylabel('amplitude (V)')
-        plt.grid()
-        plt.legend(loc='upper right')
-        plt.show()
-
-    def _compute_width_height(self, eye_vals: np.ndarray, val_mid: float) -> Mapping[str, Any]:
+    def _compute_width_height(self, eye_vals: np.ndarray, val_mid: float) -> EyeResults:
         eye_0 = eye_vals - val_mid
         # replace all negative values with max value
         eye_pos = np.where(eye_0 > 0, eye_0, np.max(eye_0))
@@ -47,18 +70,24 @@ class EyeAnalysis:
         pos_h = np.argmax(eye_heights[pos0:pos1])
         pos_h += pos0
         eye_w = self._time_eye[pos1] - self._time_eye[pos0]
-        return dict(
-            width=eye_w,
-            height=eye_h,
-            pos_w0=pos0,
-            pos_w1=pos1,
-            pos_h=pos_h,
-            val_mid=val_mid,
-        )
+        return EyeResults(eye_w, eye_h, pos0, pos1, pos_h, val_mid, eye_vals, self._time_eye)
 
-    def analyze_eye(self, time: np.ndarray, sig: np.ndarray, plot_eye: bool = False) -> Mapping[str, Any]:
+    def analyze_eye(self, time: np.ndarray, sig: np.ndarray) -> EyeResults:
+        """
+        Parameters
+        ----------
+        time: np.ndarray
+            Time axis
+        sig: np.ndarray
+            Signal axis
+
+        Returns
+        -------
+        ans: EyeResults
+            the EyeResults object which has attributes 'width' and 'height', and can be plotted using plot()
+        """
         # linearly interpolate the signal
-        sig_li = LinearInterpolator([time], sig, [self._t_per / 10])
+        sig_li = LinearInterpolator([time], sig, [self._t_per / self._strobe])
 
         # starting from t_delay, find the first transition
         val_mid = (min(sig) + max(sig)) / 2
@@ -87,15 +116,7 @@ class EyeAnalysis:
             eye_vals[tridx] = sig_vals[tridx * self._strobe:(tridx + 1) * self._strobe]
 
         # compute eye width and height
-        ans = self._compute_width_height(eye_vals, val_mid)
-
-        if plot_eye:
-            self._plot_eye(eye_vals, ans)
-
-        return dict(
-            width=ans['width'],
-            height=ans['height'],
-        )
+        return self._compute_width_height(eye_vals, val_mid)
 
 
 def bin_search(data: LinearInterpolator, t_i: float, t_f: float, tol: float) -> float:
