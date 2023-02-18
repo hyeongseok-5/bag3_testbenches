@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Union, Tuple, Optional, Mapping, Sequence, List, Dict, cast
+from typing import Any, Union, Optional, Mapping, Sequence, List, cast
 
 from pathlib import Path
 from itertools import chain
@@ -23,9 +23,8 @@ import numpy as np
 from bag.io.file import write_yaml
 from bag.simulation.base import get_bit_list
 from bag.simulation.data import SimData
-from bag.simulation.core import TestbenchManager
-from bag.simulation.cache import SimulationDB, DesignInstance, SimResults, MeasureResult
-from bag.simulation.measure import MeasurementManager, MeasInfo
+from bag.simulation.cache import SimulationDB, DesignInstance
+from bag.simulation.measure import MeasurementManager
 
 from ..data.tran import EdgeType
 from ..tran.digital import DigitalTranTB
@@ -129,7 +128,8 @@ class CombLogicTimingMM(MeasurementManager):
             raise ValueError('incorrect out_invert list length.')
 
     async def async_measure_performance(self, name: str, sim_dir: Path, sim_db: SimulationDB,
-                                        dut: Optional[DesignInstance]) -> Dict[str, Any]:
+                                        dut: Optional[DesignInstance],
+                                        harnesses: Optional[Sequence[DesignInstance]] = None) -> Mapping[str, Any]:
         """A coroutine that performs measurement.
 
         The measurement is done like a FSM.  On each iteration, depending on the current
@@ -246,18 +246,6 @@ class CombLogicTimingMM(MeasurementManager):
             timing_data=timing_data,
         )
         return results
-
-    def initialize(self, sim_db: SimulationDB, dut: DesignInstance) -> Tuple[bool, MeasInfo]:
-        raise RuntimeError('Unused')
-
-    def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo
-                     ) -> Tuple[Union[Tuple[TestbenchManager, Mapping[str, Any]],
-                                      MeasurementManager], bool]:
-        raise RuntimeError('Unused')
-
-    def process_output(self, cur_info: MeasInfo, sim_results: Union[SimResults, MeasureResult]
-                       ) -> Tuple[bool, MeasInfo]:
-        raise RuntimeError('Unused')
 
 
 def _get_timing_data(tbm: DigitalTranTB, data: SimData, t0: np.ndarray,

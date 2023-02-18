@@ -24,8 +24,8 @@ from bag.util.importlib import import_class
 from bag.concurrent.util import GatherHelper
 from bag.simulation.core import TestbenchManager
 from bag.simulation.data import SimData
-from bag.simulation.cache import SimulationDB, DesignInstance, SimResults, MeasureResult
-from bag.simulation.measure import MeasInfo, MeasurementManager
+from bag.simulation.cache import SimulationDB, DesignInstance
+from bag.simulation.measure import MeasurementManager
 
 from bag3_liberty.enum import TimingType
 
@@ -100,11 +100,9 @@ class FlopTimingCharMM(MeasurementManager):
             power domain of wrapper.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
     async def async_measure_performance(self, name: str, sim_dir: Path, sim_db: SimulationDB,
-                                        dut: Optional[DesignInstance]) -> Dict[str, Any]:
+                                        dut: Optional[DesignInstance],
+                                        harnesses: Optional[Sequence[DesignInstance]] = None) -> Mapping[str, Any]:
         specs = self.specs
         flop_params: Mapping[str, Any] = specs['flop_params']
         tbm_cls_val: Union[str, Type[FlopTimingBase]] = specs['tbm_cls']
@@ -258,18 +256,6 @@ class FlopTimingCharMM(MeasurementManager):
                      f'ck_{ck_str}_rf_{rf_str}')
         return state
 
-    def initialize(self, sim_db: SimulationDB, dut: DesignInstance) -> Tuple[bool, MeasInfo]:
-        raise RuntimeError('Unused')
-
-    def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo
-                     ) -> Tuple[Union[Tuple[TestbenchManager, Mapping[str, Any]],
-                                      MeasurementManager], bool]:
-        raise RuntimeError('Unused')
-
-    def process_output(self, cur_info: MeasInfo, sim_results: Union[SimResults, MeasureResult]
-                       ) -> Tuple[bool, MeasInfo]:
-        raise RuntimeError('Unused')
-
 
 class FlopTimingFakeMM(MeasurementManager):
     """Generate fake timing constraints of a flop.
@@ -290,11 +276,9 @@ class FlopTimingFakeMM(MeasurementManager):
         the swp_info object for output delay characterization.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
     async def async_measure_performance(self, name: str, sim_dir: Path, sim_db: SimulationDB,
-                                        dut: Optional[DesignInstance]) -> Dict[str, Any]:
+                                        dut: Optional[DesignInstance],
+                                        harnesses: Optional[Sequence[DesignInstance]] = None) -> Mapping[str, Any]:
         specs = self.specs
         flop_params: Mapping[str, Any] = specs['flop_params']
         t_rf_list: Sequence[float] = specs['t_rf_list']
@@ -320,18 +304,6 @@ class FlopTimingFakeMM(MeasurementManager):
 
                 new_timing.append(new_table)
         return ans
-
-    def initialize(self, sim_db: SimulationDB, dut: DesignInstance) -> Tuple[bool, MeasInfo]:
-        raise RuntimeError('Unused')
-
-    def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo
-                     ) -> Tuple[Union[Tuple[TestbenchManager, Mapping[str, Any]],
-                                      MeasurementManager], bool]:
-        raise RuntimeError('Unused')
-
-    def process_output(self, cur_info: MeasInfo, sim_results: Union[SimResults, MeasureResult]
-                       ) -> Tuple[bool, MeasInfo]:
-        raise RuntimeError('Unused')
 
 
 def _get_arr_table(timing_table: Dict[str, Any], pin_name: str, ttype_str: str,

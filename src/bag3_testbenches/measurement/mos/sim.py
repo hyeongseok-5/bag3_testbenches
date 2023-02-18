@@ -1,3 +1,33 @@
+# BSD 3-Clause License
+#
+# Copyright (c) 2018, Regents of the University of California
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 """This package contains measurement class for transistors."""
 
 from typing import Optional, Tuple, Dict, Any, List, Mapping, Sequence, Union, Type, cast
@@ -15,10 +45,10 @@ from bag.design.module import Module
 from bag.io.file import write_yaml
 from bag.io.sim_data import save_sim_results, load_sim_file
 from bag.math.interpolate import LinearInterpolator
-from bag.simulation.cache import SimulationDB, DesignInstance, SimResults, MeasureResult
+from bag.simulation.cache import SimulationDB, DesignInstance
 from bag.simulation.core import TestbenchManager
 from bag.simulation.data import AnalysisType, SimNetlistInfo, SimData, AnalysisData, netlist_info_from_dict
-from bag.simulation.measure import MeasurementManager, MeasInfo
+from bag.simulation.measure import MeasurementManager
 
 from ...schematic.mos_tb_ibias import bag3_testbenches__mos_tb_ibias
 from ...schematic.mos_tb_sp import bag3_testbenches__mos_tb_sp
@@ -377,7 +407,7 @@ class MOSNoiseTB(TestbenchManager):
 
         corner_list = data.sim_envs
         if not np.all(ss_data['corner'] == corner_list):
-            raise ValueError(f"Inconsistent corners between noise simulation and previous simulations")
+            raise ValueError("Inconsistent corners between noise simulation and previous simulations")
         cur_points = [data[name] for name in noise_swp_vars[1:]]
         cur_points[-1] = np.log(data['freq'])
 
@@ -479,24 +509,6 @@ class MOSCharSS(MeasurementManager):
 
         if self._run_tbm['noise'] and not self._run_tbm['sp']:
             raise ValueError("sp measurement must also be enabled for noise measurement to run")
-
-    # MeasurementManager's async_measure_performance utilizes the following 3 functions
-    # As async_measure_performance has been rewritten to better suit MOSCharSS behavior,
-    # these methods are no longer needed.
-
-    def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo,
-                     harnesses: Optional[Sequence[DesignInstance]] = None
-                     ) -> Tuple[Union[Tuple[TestbenchManager, Mapping[str, Any]],
-                                      MeasurementManager], bool]:
-        raise NotImplementedError
-
-    def initialize(self, sim_db: SimulationDB, dut: DesignInstance,
-                   harnesses: Optional[Sequence[DesignInstance]] = None) -> Tuple[bool, MeasInfo]:
-        raise NotImplementedError
-
-    def process_output(self, cur_info: MeasInfo, sim_results: Union[SimResults, MeasureResult]
-                       ) -> Tuple[bool, MeasInfo]:
-        raise NotImplementedError
 
     def get_tbm_specs(self, tbm_name: str) -> Dict[str, Any]:
         """
