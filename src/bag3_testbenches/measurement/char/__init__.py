@@ -70,19 +70,6 @@ class CharSPTB(TestbenchManager):
 
 
 class CharSPMeas(MeasurementManager):
-    def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo,
-                     harnesses: Optional[Sequence[DesignInstance]] = None
-                     ) -> Tuple[Union[Tuple[TestbenchManager, Mapping[str, Any]],
-                                      MeasurementManager], bool]:
-        raise NotImplementedError
-
-    def initialize(self, sim_db: SimulationDB, dut: DesignInstance,
-                   harnesses: Optional[Sequence[DesignInstance]] = None) -> Tuple[bool, MeasInfo]:
-        raise NotImplementedError
-
-    def process_output(self, cur_info: MeasInfo, sim_results: Union[SimResults, MeasureResult]):
-        raise NotImplementedError
-
     async def async_measure_performance(self, name: str, sim_dir: Path, sim_db: SimulationDB,
                                         dut: Optional[DesignInstance],
                                         harnesses: Optional[Sequence[DesignInstance]] = None

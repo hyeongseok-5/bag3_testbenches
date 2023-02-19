@@ -13,19 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, Any, Tuple, Optional, Union, Mapping
+from typing import Any, Tuple, Optional, Mapping, Sequence
 
 import pprint
 from pathlib import Path
 
+from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import linregress
 
 from bag.io.file import write_yaml
 from bag.concurrent.util import GatherHelper
-from bag.simulation.core import TestbenchManager
-from bag.simulation.cache import DesignInstance, SimulationDB, SimResults, MeasureResult
-from bag.simulation.measure import MeasurementManager, MeasInfo
+from bag.simulation.cache import DesignInstance, SimulationDB
+from bag.simulation.measure import MeasurementManager
 
 from ..tran.digital import DigitalTranTB
 from .comb import CombLogicTimingMM
@@ -144,7 +144,8 @@ class RCDelayCharMM(MeasurementManager):
         )
 
     async def async_measure_performance(self, name: str, sim_dir: Path, sim_db: SimulationDB,
-                                        dut: Optional[DesignInstance]) -> Dict[str, Any]:
+                                        dut: Optional[DesignInstance],
+                                        harnesses: Optional[Sequence[DesignInstance]] = None) -> Mapping[str, Any]:
         specs = self.specs
         in_pin: str = specs['in_pin']
         out_pin: str = specs['out_pin']
@@ -177,7 +178,6 @@ class RCDelayCharMM(MeasurementManager):
         rout_fall, cout_fall = self.fit_rc_out(td_out_fall, c_load, t_unit)
 
         if plot:
-            from matplotlib import pyplot as plt
             if len(sim_envs) > 100:
                 raise ValueError('Can only plot with num. sim_envs < 100')
             for idx in range(len(sim_envs)):
@@ -258,15 +258,3 @@ class RCDelayCharMM(MeasurementManager):
             rvec[idx] = r0
             cvec[idx] = c0
         return rvec, cvec
-
-    def initialize(self, sim_db: SimulationDB, dut: DesignInstance) -> Tuple[bool, MeasInfo]:
-        raise RuntimeError('Unused')
-
-    def get_sim_info(self, sim_db: SimulationDB, dut: DesignInstance, cur_info: MeasInfo
-                     ) -> Tuple[Union[Tuple[TestbenchManager, Mapping[str, Any]],
-                                      MeasurementManager], bool]:
-        raise RuntimeError('Unused')
-
-    def process_output(self, cur_info: MeasInfo, sim_results: Union[SimResults, MeasureResult]
-                       ) -> Tuple[bool, MeasInfo]:
-        raise RuntimeError('Unused')
