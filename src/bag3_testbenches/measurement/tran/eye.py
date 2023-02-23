@@ -1,5 +1,6 @@
 from typing import Optional
 import numpy as np
+from scipy.interpolate import InterpolatedUnivariateSpline
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from dataclasses import dataclass, field
@@ -44,7 +45,7 @@ class EyeResults:
 
 
 class EyeAnalysis:
-    def __init__(self, t_per: float, t_delay: float, strobe: int = 100) -> None:
+    def __init__(self, t_per: float, t_delay: float, strobe: int = 1000) -> None:
         self._t_per: float = t_per
         self._t_delay: float = t_delay
         self._strobe: int = strobe
@@ -53,6 +54,18 @@ class EyeAnalysis:
 
     def _compute_width_height(self, eye_vals: np.ndarray, val_mid: float) -> EyeResults:
         eye_0 = eye_vals - val_mid
+        # initialize left and right edge of eye
+        time0 = 0
+        time1 = self._strobe
+        time_mid = self._eye_per / 2
+        for _wave in eye_0:
+            _wave_intp = InterpolatedUnivariateSpline(self._time_eye, _wave)
+            for _root in _wave_intp.roots():
+                if _root < time_mid:
+                    time0 = max(time0, _root)
+                else:
+                    time1 = min(time1, _root)
+
         # replace all negative values with max value
         eye_pos = np.where(eye_0 > 0, eye_0, np.max(eye_0))
         # replace all positive values with min value
@@ -60,16 +73,14 @@ class EyeAnalysis:
 
         eye_heights = np.min(eye_pos, 0) - np.max(eye_neg, 0)
 
-        # find min eye height position in first half of the array
-        pos0 = np.argmin(eye_heights[self._strobe // 2::-1])    # last occurrence
-        pos0 = self._strobe // 2 - pos0
-        pos1 = np.argmin(eye_heights[self._strobe // 2:])
-        pos1 += self._strobe // 2
+        # find positions of time0 and time1 for plotting
+        pos0 = np.where(self._time_eye > time0)[0][0]
+        pos1 = np.where(self._time_eye < time1)[0][-1]
 
         eye_h = np.max(eye_heights[pos0:pos1])
         pos_h = np.argmax(eye_heights[pos0:pos1])
         pos_h += pos0
-        eye_w = self._time_eye[pos1] - self._time_eye[pos0]
+        eye_w = time1 - time0
         return EyeResults(eye_w, eye_h, pos0, pos1, pos_h, val_mid, eye_vals, self._time_eye)
 
     def analyze_eye(self, time: np.ndarray, sig: np.ndarray) -> EyeResults:
