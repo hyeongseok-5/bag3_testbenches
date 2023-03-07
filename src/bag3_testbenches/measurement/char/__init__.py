@@ -215,7 +215,10 @@ def compute_passives(meas_results: Mapping[str, Any], passive_type: str) -> Mapp
 
         warr = 2 * np.pi * freq
         z_meas = 1 / (yc + (ypp * ypm) / (ypp + ypm))
-        cp_est = 1 / (1 / results['cpp'] + 1 / results['cpm'])
+        if results['cpp'] == 0 or results['cpm'] == 0:
+            cp_est = 0
+        else:
+            cp_est = 1 / (1 / results['cpp'] + 1 / results['cpm'])
         z_est = 1 / (1 / results['res'] + 1j * warr * (results['c_parallel'] + cp_est))
         plt.semilogx(freq, np.abs(z_meas), label='Measured')
         plt.semilogx(freq, np.abs(z_est), label='Estimated')
