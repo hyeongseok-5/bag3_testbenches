@@ -47,9 +47,9 @@ class EyeResults:
         plt.figure()
         plt.plot(self.time_eye, self.eye_vals.T, 'b')
         plt.hlines(self.val_mid, self.time_eye[self.pos_w0], self.time_eye[self.pos_w1],
-                    label=f'width={self.width} s', linestyle="--", colors=['r'])
+                   label=f'width={self.width} s', linestyle="--", colors=['r'])
         plt.vlines(self.time_eye[self.pos_h], self.val_mid - self.height / 2, self.val_mid + self.height / 2,
-                    label=f'height={self.height} V', linestyle=":", colors=['g'])
+                   label=f'height={self.height} V', linestyle=":", colors=['g'])
         plt.xlabel('time (s)')
         plt.ylabel('amplitude (V)')
         plt.grid()
@@ -91,7 +91,7 @@ class EyeAnalysis:
         pos1 = np.where(self._time_eye < time1)[0][-1]
 
         eye_h = np.max(eye_heights[pos0:pos1])
-        pos_h = np.argmax(eye_heights[pos0:pos1])
+        pos_h = int(np.argmax(eye_heights[pos0:pos1]))
         pos_h += pos0
         eye_w = time1 - time0
         return EyeResults(eye_w, eye_h, pos0, pos1, pos_h, val_mid, eye_vals, self._time_eye)
