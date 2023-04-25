@@ -26,7 +26,7 @@ import numpy as np
 from bag.util.search import FloatIntervalSearch
 from bag.simulation.core import TestbenchManager
 from bag.simulation.cache import SimulationDB, SimResults, MeasureResult, DesignInstance
-from bag.simulation.measure import MeasurementManager, MeasInfo
+from bag.simulation.measure import MeasurementManager, MeasurementManagerFSM, MeasInfo
 
 
 class AcceptMode(Flag):
@@ -35,7 +35,7 @@ class AcceptMode(Flag):
     BOTH = POSITIVE | NEGATIVE
 
 
-class IntervalSearchMM(MeasurementManager, abc.ABC):
+class IntervalSearchMM(MeasurementManagerFSM, abc.ABC):
     """A Measurement manager that performs binary search for you.
 
     Assumes that no parameters/corners are swept.
