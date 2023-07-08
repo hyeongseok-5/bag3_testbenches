@@ -55,7 +55,7 @@ class CharSPTB(TestbenchManager):
         sweep_options: Mapping[str, Any] = self.specs['sweep_options']
         sp_options: Mapping[str, Any] = self.specs.get('sp_options', {})
         save_outputs: Sequence[str] = self.specs.get('save_outputs', ['plus', 'minus'])
-        ac_dict = dict(type='SP',
+        sp_dict = dict(type='SP',
                        param=sweep_var,
                        sweep=sweep_options,
                        param_type='Y',
@@ -65,7 +65,7 @@ class CharSPTB(TestbenchManager):
                        )
 
         sim_setup = self.get_netlist_info_dict()
-        sim_setup['analyses'] = [ac_dict]
+        sim_setup['analyses'] = [sp_dict]
         return netlist_info_from_dict(sim_setup)
 
 
@@ -75,27 +75,33 @@ class CharSPMeas(MeasurementManager):
                                         harnesses: Optional[Sequence[DesignInstance]] = None
                                         ) -> Mapping[int, Mapping[str, Any]]:
         helper = GatherHelper()
+        sim_envs = self.specs['sim_envs']
         ibias_list = self.specs.get('ibias_list', [0])
-        for ibias in ibias_list:
-            helper.append(self.async_meas_case(name, sim_dir, sim_db, dut, ibias))
+        for sim_env in sim_envs:
+            for ibias in ibias_list:
+                helper.append(self.async_meas_case(name, sim_dir / sim_env, sim_db, dut, sim_env, ibias))
 
         meas_results = await helper.gather_err()
         passive_type: str = self.specs['passive_type']
         ans = {}
-        for idx, ibias in enumerate(ibias_list):
-            _results = meas_results[idx]
-            _ans = compute_passives(_results, passive_type)
-            ans[idx] = dict(
-                **_ans,
-                ibias=ibias,
-            )
+        ridx = 0
+        for sim_env in sim_envs:
+            ans[sim_env] = {}
+            for idx, ibias in enumerate(ibias_list):
+                _results = meas_results[ridx]
+                _ans = compute_passives(_results, passive_type)
+                ans[sim_env][idx] = dict(
+                    **_ans,
+                    ibias=ibias,
+                )
+                ridx += 1
         return ans
 
     async def async_meas_case(self, name: str, sim_dir: Path, sim_db: SimulationDB, dut: Optional[DesignInstance],
-                              ibias: float = 0.0) -> Mapping[str, Any]:
+                              sim_env: str, ibias: float = 0.0) -> Mapping[str, Any]:
         tbm_specs = dict(
             **self.specs['tbm_specs']['sp_meas'],
-            sim_envs=self.specs['sim_envs'],
+            sim_envs=[sim_env],
         )
         tbm_specs['sim_params']['idc'] = ibias
         tbm = cast(CharSPTB, self.make_tbm(CharSPTB, tbm_specs))
