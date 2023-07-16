@@ -53,7 +53,8 @@ def run_main(prj: BagProject, args: argparse.Namespace) -> None:
     specs: Mapping[str, Any] = read_yaml(args.specs)
     specs_list: List[str] = specs['specs_list']
     query_options: Mapping[str, Any] = specs['query_options']
-
+    import pdb
+    pdb.set_trace()
     db = MOSDBDiscrete(prj, specs_list)
     ss_params = db.query(**query_options)
     pprint(ss_params)
